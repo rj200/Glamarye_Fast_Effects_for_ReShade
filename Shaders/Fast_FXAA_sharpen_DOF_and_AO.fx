@@ -196,7 +196,7 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 1; ui_step = .05;
 	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).";
 	ui_label = "DOF blur";
-> = 0.5;
+> = 0;
 
 
 //Diminishing returns after 9 points. More would need a more sophisticated sampling pattern.
