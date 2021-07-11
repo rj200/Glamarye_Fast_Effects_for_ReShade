@@ -252,7 +252,8 @@ uniform int debug_mode <
 	           "Debug: show FXAA edges\0"
 			   "Debug: show ambient occlusion shade\0"
 	           "Debug: show depth buffer\0"
-			   "Debug: show depth and AO\0";
+			   "Debug: show depth and AO\0"
+			   "Debug: show depth and image\0";
 	ui_tooltip = "Handy when tuning ambient occlusion settings.";
 > = 0;
 
@@ -280,10 +281,10 @@ uniform float ao_range < __UNIFORM_SLIDER_FLOAT1
 
 uniform float step_detect_threshold < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
-	ui_min = 0.000; ui_max = 0.1; ui_step = .01;
+	ui_min = 0.000; ui_max = 0.1; ui_step = .001;
 	ui_tooltip = "Shouldn't need to change this. Smoothing starts when the step shape is stronger than this. Too high and some steps will be visible. Too low and subtle textures will lose detail. ";
 	ui_label = "Fast FXAA threshold";
-> = 0.050;
+> = 0.025;
 
 
 uniform float lighten_ratio < __UNIFORM_SLIDER_FLOAT1
@@ -292,8 +293,6 @@ uniform float lighten_ratio < __UNIFORM_SLIDER_FLOAT1
 	ui_tooltip = "Sharpening looks most realistic if highlights are weaker than shade. The change in colour is multiplied by this if it's getting brighter.";
 	ui_label = "Sharpen lighten ratio";
 > = 0.25;
-
-
 
 uniform bool abtest <
     ui_category = "Advanced Options";
@@ -337,7 +336,7 @@ sampler2D samplerDepth
 	
 // This is copy of reshade's getLinearizedDepth but using POINT sampling (LINEAR interpolation can cause artefacts - thin ghost of edge one radius away.)
 float pointDepth(float2 texcoord)
-	{
+{
 #if RESHADE_DEPTH_INPUT_IS_UPSIDE_DOWN
 		texcoord.y = 1.0 - texcoord.y;
 #endif
@@ -431,7 +430,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			// We compare the biggest diff to the total. The bigger the difference the stronger the step shape.
 			// Add step_detect_threshold to avoid blurring where not needed and to avoid divide by zero. We're in linear colour space, but monitors and human vision isn't. Darker pixels need smaller threshold than light ones, so we adjust the threshold.
 				
-			float total_diff = (d1+d2) + step_detect_threshold*sqrt(dot(luma,smooth));			
+			float total_diff = (d1+d2) + step_detect_threshold*sqrt(dot(luma,smooth));		
 			float max_diff = max(d1,d2);
 				
 			//score between 0 and 1
@@ -451,17 +450,14 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		
 				// If DOF enabled, we adjust sharpening/bluring based on depth.
 				if(dof_enabled) sharp_multiplier = lerp(sharp_multiplier,-dof_strength,depth);				
-		
+						
 				float3 sharp_diff = (c-smooth)*4;
 				
 				//If pixel will get brighter, then weaken the amount. Looks better.
 				if(dot(luma,sharp_diff)*sharp_multiplier >= 0) sharp_diff *= lighten_ratio;
 				
-				//set maximum pixel change to prevent oversharpening and saturating.
-				sharp_diff = clamp(sharp_diff, -float3(.15,.15,.15), lighten_ratio*float3(0.15,0.15,0.15) );
-			
-				// now sharpen c but no more than half way towards 0 or 1.
-				c = clamp(c + sharp_diff*sharp_multiplier, c*.5, c*.5 +.5); 	
+				// now sharpen c but no more than 20% of way towards 0 or 1.
+				c = clamp(c + sharp_diff*sharp_multiplier, c*.80, c*.80+.20); 					
 			}
 		}
 		
@@ -545,7 +541,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		else ao = ao * ao_strength;
 		
 		// Adjust AO strength based on quality - otherwise it can appear to be too strong at 3 and too weak at 9.
-		ao *= (points+3.0)/(float)AO_MAX_POINTS; 
+		//ao *= (points+3.0)/(float)AO_MAX_POINTS; 
 		
 		//Weaken the AO effect depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.
 		ao = ao*max(0,1-depth*rcp(ao_fog_fix));
@@ -553,14 +549,15 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		//Reduce AO by up to half in bright areas - makes sure shade not overdone where it's most obvious.
 		ao = lerp(ao,0,dot(luma,result)/2);
 		
-		//Now adjust the pixel, but no more than 75% of the way to 0 or half way to 1 to prevent overdoing it.
-		result = clamp( result*(1-ao), result*.25, 0.5*result +0.5 );
+		//Now adjust the pixel, but no more than 50% of the way  to prevent overdoing it.
+		result = clamp( result*(1-ao), result*.5, 0.5*result +0.5 );
 		
 									
 	}	
 	
 	//Show depth buffer mode
 	if(debug_mode == 3) result = depth ; 
+	if(debug_mode==5) result = (result+depth) /2;
 			
 	return result;	
 }
