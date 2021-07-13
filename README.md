@@ -1,5 +1,7 @@
 # Fast_FXAA_sharpen_DOF_and_AO_for_reshade
+
 Author: Robert Jessop
+
 License: MIT
 	
 About
@@ -15,6 +17,7 @@ It combines 4 effects in one shader for speed. Each can be enabled or disabled.
 4. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, add depth, and prevents the image overall becoming too dark.
 	
 3 and 4 require depth buffer access.
+
 Tested in Toussaint :)
 	
 Setup
@@ -38,27 +41,37 @@ Setup
 Enabled/disable effects
 =======================
 	
-"Fast FXAA" - Fullscreen approximate anti-aliasing. Fixes jagged edges.
+**Fast FXAA** - Fullscreen approximate anti-aliasing. Fixes jagged edges.
     
-"Intelligent Sharpen" - Sharpens image, but working with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
-"Depth of field (DOF) (requires depth buffer)" - Softens distant objects subtly, as if slightly out of focus. 
+**Intelligent Sharpen** - Sharpens image, but working with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
+
+**Depth of field (DOF) (requires depth buffer)** - Softens distant objects subtly, as if slightly out of focus. 
     
-"Fast Ambient Occlusion (AO) (requires depth buffer)" - Ambient occlusion shades pixels that are surrounded by pixels closer to the camera - concave shapes. It's a simple approximation of the of ambient light reaching each area (i.e. light just bouncing around the world, not direct light.)
+**Fast Ambient Occlusion (AO) (requires depth buffer)** - Ambient occlusion shades pixels that are surrounded by pixels closer to the camera - concave shapes. It's a simple approximation of the of ambient light reaching each area (i.e. light just bouncing around the world, not direct light.)
     
+
 Fine Tuning
 ===========
-"Sharpen strength" - For values > 0.5 I suggest depth of field too.
-"DOF blur" - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
-	
-"AO strength" - Ambient Occlusion. Higher mean deeper shade in concave areas.
-	
-"AO shine" - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. 
-"AO quality" - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. TIP: Hit reload button after changing this (performance bug workaround).
-"AO radius" - Ambient Occlusion affected area, in screen-space pixels. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. May need adjusting based on your screen resolution.
-"AO max distance" - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.";
+
+**Sharpen strength** - For values > 0.5 I suggest depth of field too.
+
+**DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
+
+**AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas.
+
+**AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. 
+
+**AO quality** - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. TIP: Hit reload button after changing this (performance bug workaround).
+
+**AO radius** - Ambient Occlusion affected area, in screen-space pixels. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. May need adjusting based on your screen resolution.
+
+**AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.;
+
 Debugging
 =========
-"Output mode" - Debug view helps understand what the algorithms are doing. Especially handy when tuning ambient occlusion settings.
+
+**Output mode** - Debug view helps understand what the algorithms are doing. Especially handy when tuning ambient occlusion settings.
+
 Tips: 
 	- Check if game provides depth buffer! if not turn of depth of field and ambient occlusion for better performance.
 	- If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
@@ -76,15 +89,16 @@ Advanced options
 	
 You should not need to tweak these and doing so will probably make it look worse.
 	
-"AO -> AO²" - Squares the amount ambient occlusion applied to each pixel. Looks more realistic, but the AO may become too subtle in some areas. At lower AO strength levels or if you have low-contrast screen you might want to turn it off. 
+**AO -> AO²** - Squares the amount ambient occlusion applied to each pixel. Looks more realistic, but the AO may become too subtle in some areas. At lower AO strength levels or if you have low-contrast screen you might want to turn it off. 
 		
-"AO shape modifier" - Ambient occlusion. If you have a good, high-contrast depth buffer, you can increase to reduce excessive shading in nearly flat areas. May want to reduce to 2 if using ambient shine.
+**AO shape modifier** - Ambient occlusion. If you have a good, high-contrast depth buffer, you can increase to reduce excessive shading in nearly flat areas. May want to reduce to 2 if using ambient shine.
 	
-"AO max depth diff" - Ambient occlusion biggest depth difference to allow. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
+**AO max depth diff** - Ambient occlusion biggest depth difference to allow. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
 	
-"Fast FXAA threshold" - Shouldn't need to change this. Smoothing starts when the step shape is stronger than this. Too high and some steps will be visible. Too low and subtle textures will lose detail.
+**Fast FXAA threshold** - Shouldn't need to change this. Smoothing starts when the step shape is stronger than this. Too high and some steps will be visible. Too low and subtle textures will lose detail.
 	
-"Sharpen lighten ratio" - Sharpening looks most realistic if highlights are weaker than shade. The change in colour is multiplied by this if it's getting brighter.
+**Sharpen lighten ratio** - Sharpening looks most realistic if highlights are weaker than shade. The change in colour is multiplied by this if it's getting brighter.
+
 	
 Tech details
 ============
@@ -94,6 +108,7 @@ Combining FXAA, sharpening and depth of field in one shader works better than se
 GPUs are so fast that memory is the performance bottleneck. While developing I found that number of texture reads was the biggest factor in performance. Interestingly, it's the same if you're reading one texel, or the bilinear interpolation of 4 adjacent ones (interpolation is implemented in hardware such that it is basically free). Each pass has noticable cost too. Therefore everything is combined in one pass, with the algorithms designed to use as few reads as possible. Fast FXAA makes 7 reads per pixel. Sharpen uses 5 reads, but 5 already read by FXAA so if both are enabled it's basically free. Depth of field also re-uses the same 5 pixels, but adds 3 reads from the depth buffer. If Depth of field is enabled, ambient occlusion adds just 1-9 more depth buffer reads (depending on quality level set). 
 	
 FXAA starts with the centre pixel, plus 4 samples each half a pixel away diagonally; each of the 4 samples is the average of four pixels. Based on their shape it then samples two more points 3.5 pixels away horizontally or vertically. We look at the diamond created ◊ and look at the change along each side of the diamond. If the change is bigger on one pair of parallel edges and small on the other then we have an edge. The size of difference determines the score, and then we blend between the centre pixel and a smoothed using the score as the ratio. 
+
 The smooth option is the four nearby samples minus the current pixel. Effectively this is convolution:
 1 2 1
 2 0 2  / 12;
@@ -112,8 +127,11 @@ Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it
 Amazingly, this gives quite decent results even with only 3 points in the circle (4 depth reads in total, including the centre one shared with depth of field.)
 	
 Ideas for future improvement:
+
 Fog detection and adjust ambient occlusion range dynamically.
 			
 History:
+
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
 Version 1.0 - initial public release
