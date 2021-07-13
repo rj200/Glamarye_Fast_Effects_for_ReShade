@@ -57,7 +57,7 @@ Enabled/disable effects
 	
 "Fast FXAA" - Fullscreen approximate anti-aliasing. Fixes jagged edges.
     
-"Intelligent Sharpen" - Sharpens image, but working with FXAA and depth of field instead of fighting them. By default it only darkens pixels, as brightening too looks less realistic.
+"Intelligent Sharpen" - Sharpens image, but working with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
 
 "Depth of field (DOF) (requires depth buffer)" - Softens distant objects subtly, as if slightly out of focus. 
     
@@ -121,11 +121,16 @@ Combining FXAA, sharpening and depth of field in one shader works better than se
 	
 GPUs are so fast that memory is the performance bottleneck. While developing I found that number of texture reads was the biggest factor in performance. Interestingly, it's the same if you're reading one texel, or the bilinear interpolation of 4 adjacent ones (interpolation is implemented in hardware such that it is basically free). Each pass has noticable cost too. Therefore everything is combined in one pass, with the algorithms designed to use as few reads as possible. Fast FXAA makes 7 reads per pixel. Sharpen uses 5 reads, but 5 already read by FXAA so if both are enabled it's basically free. Depth of field also re-uses the same 5 pixels, but adds 3 reads from the depth buffer. If Depth of field is enabled, ambient occlusion adds just 1-9 more depth buffer reads (depending on quality level set). 
 	
-FXAA starts with the centre pixel, plus 4 samples each half a pixel away diagonally; each of the 4 samples is the average of four pixels. Based on their shape it then samples two more points 3.5 pixels away horizontally or vertically. We look at the diamond created ◊ and look at the change along each side of the diamond. If the change is bigger on one pair of parallel edges and small on the other then we have an edge. The size of difference determines the score, and then we blend between the centre pixel and a smoothed using the score as the ratio. The smooth option is based on the original four samples, but with the one most similar to the centre pixel subtracted. 
+FXAA starts with the centre pixel, plus 4 samples each half a pixel away diagonally; each of the 4 samples is the average of four pixels. Based on their shape it then samples two more points 3.5 pixels away horizontally or vertically. We look at the diamond created ◊ and look at the change along each side of the diamond. If the change is bigger on one pair of parallel edges and small on the other then we have an edge. The size of difference determines the score, and then we blend between the centre pixel and a smoothed using the score as the ratio. 
+
+The smooth option is the four nearby samples minus the current pixel. Effectively this is convolution:
+1 2 1
+2 0 2  / 12;
+1 2 1
 	
-Sharpening increases the difference between the centre pixel and the smoothed option described above. If FXAA decides to smooth the pixel the sharpenning will be reduced, if FXAA smoothes it the maximum amount then sharpening is cancelled out completely.
+Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each. It then uses the median of zero and the two sharp options. It also has a hard limit on maximum change in pixel value of 25%. It darkens pixels more than it brightens them; this looks more realistic. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
 	
-Depth of field is subtle; this implementation isn't a fancy cinematic focus effect. Good to enable if using strong sharpening, as it takes the edge of the background and helps emphasise the foreground. Actually works by modifing the score from the FXAA algorithm, which helps preserve shapes (If FXAA is disabled, it starts with score=0). As well as reading the depth buffer at the current pixel, it uses two adjacent pixels and takes the minimum depth - this is to avoid blurring edges; without it complex shapes with holes (e.g. trees) don't look as good. 
+Depth of field is subtle; this implementation isn't a fancy cinematic focus effect. Good to enable if using strong sharpening, as it takes the edge of the background and helps emphasise the foreground. If DOF blur is set to zero, then it just reduces the strength of sharpening, so sharpening gradually disappears in the distance. If DOF blur is higher, it also blurs pixels, increasing blur with distance - at 1 pixels at maximum depth as set to the smooth value. Depth of field is applied before sharpening.
 		
 Ambient occlusion adds shade to concave areas of the scene. It's a screen space approximation of the amount of ambient light reaching every pixel. It uses the depth buffer generated by the rasterisation process. Without ambient occlusion everything looks flat. However, ambient occlusion should be subtle and not be overdone. Have a look around in the real world - the bright white objects with deep shading you see in research papers just aren't realistic. If you're seeing black shade on bright objects, or if you can't see details in dark scenes then it's too much. However, exagerating it just a little bit compared to the real-world is good - it's another depth clue for your brain and makes the flat image on the flat screen look more 3D.  
 	
@@ -136,7 +141,7 @@ Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it
 Amazingly, this gives quite decent results even with only 3 points in the circle (4 depth reads in total, including the centre one shared with depth of field.)
 	
 Ideas for future improvement:
-None
+Fog detection and adjust ambient occlusion range dynamically.
 			
 History:
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
@@ -163,7 +168,7 @@ uniform bool fxaa_enabled <
 uniform bool sharp_enabled <
     ui_category = "Enabled Effects";
     ui_label = "Intelligent Sharpen";
-    ui_tooltip = "Sharpens image, but working with FXAA and depth of field instead of fighting them. By default it only darkens pixels, as brightening too looks less realistic. ";
+    ui_tooltip = "Sharpens image, but working with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic. ";
     ui_type = "radio";
 > = true;
 
@@ -503,8 +508,6 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		
 		// Checkerboard pattern of 1s and 0s ▀▄▀▄▀▄. Single layer of dither works nicely to allow us to use 2 radii without doubling the samples per pixel. More complex dither patterns are noticable and annoying.
 		uint square =  (uint(vpos.x+vpos.y)) % 2;
-				
-		const float pi = radians(180);
 		
 		//our sample points. 
 		const uint points=ao_points;		
@@ -514,20 +517,22 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		// Every other square half the radius 
 		if(square) radius *= 0.5;
 				
-		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.
-		const float angle = pi/points;
-				
 		float ao=0;
 		
 		// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
 		const float shape = radius*FLT_EPSILON*ao_shape_modifier; 
+		
+		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.
+		const float pi = radians(180);
+		const float angle = pi/points;
 	
 		[unroll]
 		for(uint i = 1; i<=points; i++) {
-			float this_angle = (i*2+square)*angle ;
+			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
+			float2 the_vector = square ? ao_radius*.5*BUFFER_PIXEL_SIZE*float2( sin((i*2+1)*angle), cos((i*2+1)*angle) ) : ao_radius*BUFFER_PIXEL_SIZE*float2( sin((i*2)*angle), cos((i*2)*angle) );
 			
 			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.
-			s[i] = pointDepth( texcoord+radius*BUFFER_PIXEL_SIZE*float2( sin(this_angle), cos(this_angle) ));	
+			s[i] = pointDepth( texcoord+the_vector);	
 				
 			//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - set it to = depth of centre.
 			if( s[i] < depth*(1-ao_range) ) s[i] = depth;
@@ -590,4 +595,3 @@ technique Fast_FXAA_sharpen_DOF_and_AO
 		SRGBWriteEnable = true;
 	}		
 }
-
