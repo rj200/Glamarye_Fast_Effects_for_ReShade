@@ -73,7 +73,7 @@ Fine Tuning
 	
 "AO strength" - Ambient Occlusion. Higher mean deeper shade in concave areas.
 	
-"AO shine" - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Tip: keep below .5, unless you want a very stylized look where every surface is shiny.
+"AO shine" - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. 
 
 "AO quality" - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. TIP: Hit reload button after changing this (performance bug workaround).
 
@@ -217,9 +217,9 @@ uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 
 uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Tuning and Configuration";
-	ui_min = 0.0; ui_max = 1; ui_step = .05;
+	ui_min = 0.0; ui_max = .5; ui_step = .05;
     ui_label = "AO shine";
-    ui_tooltip = "Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Tip: keep below .5, unless you want a very stylized look where every surface is shiny.";
+    ui_tooltip = "Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer.";
 > = 0;
 
 
@@ -284,7 +284,7 @@ uniform float step_detect_threshold < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0.000; ui_max = 0.1; ui_step = .001;
 	ui_tooltip = "Shouldn't need to change this. Smoothing starts when the step shape is stronger than this. Too high and some steps will be visible. Too low and subtle textures will lose detail. ";
 	ui_label = "Fast FXAA threshold";
-> = 0.025;
+> = 0.05;
 
 
 uniform float lighten_ratio < __UNIFORM_SLIDER_FLOAT1
@@ -300,6 +300,17 @@ uniform bool abtest <
     ui_tooltip = "Ignore this. Used by developer when testing and comparing algorithm changes.";
     ui_type = "radio";
 > = false;
+
+
+/*
+Not used. This is now varied from .1 t o .25 based on sharp_strength.
+uniform float max_sharp < __UNIFORM_SLIDER_FLOAT1
+	ui_category = "Advanced Options";
+	ui_min = 0.000; ui_max = 0.5; ui_step = .01;
+	ui_tooltip = "Maximum change in any pixel from sharpen or DOF. Increase for more sharpness, decrease to reduce artefacts such as visible lines on horizontal or vertical edges. ";
+	ui_label = "Maximum sharpen";
+> = 0.25;
+*/
 
 //////////////////////////////////////////////////////////////////////
 
@@ -367,12 +378,21 @@ float pointDepth(float2 texcoord)
 		return depth;
 }
 
+float3 medianof4(in float3 a, in float3 b, in float3 c, in float3 d) {
+	float3 min1 = min(a, b);
+	float3 max1 = max(a, b);
+	float3 min2 = min(c, d);
+	float3 max2 = max(c, d);
+	float3 mid1 = max(min1,min2);
+	float3 mid2 = min(max1, max2);
+		
+	return (mid1+mid2)/2;
+}
+
 float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 {	
 	//centre (original pixel)
 	float3 c = tex2D(samplerColor, texcoord).rgb;
-	
-	float3 result=c;
 	
 	//centre pixel depth
 	float depth=0;
@@ -396,26 +416,29 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		float ratio=0;
 		
 		// Average of surrounding pixels, both smoothing edges (FXAA) 
-		float3 smooth = (ne+sw+se+nw-c)/3;		
+		float3 smooth = ((ne+nw)+(se+sw)-c)/3;	
 		
-		if(fxaa_enabled) {	
-			//Do we have horizontal or vertical line?
-			float dy = dot(luma,abs(ne+nw-se-sw));
-			float dx = dot(luma,abs(ne+se-nw-sw));
-			bool horiz =  dy > dx;
+		//Do we have horizontal or vertical line?
+		float dy = dot(luma,abs((ne+nw)-(se+sw)));
+		float dx = dot(luma,abs((ne+se)-(nw+sw)));
+		bool horiz =  dy > dx;
 			
-			//We will proceed as if line is east to west. If it's north to south then rotate everything by 90 degrees.
-			//First we get and approximation of the line of 3 pixels above and below c.
-			float3 n2=horiz ? nw+ne-c : ne+se-c;
-			float3 s2=horiz ? se+sw-c : sw+nw-c;
-				
+		//We will proceed as if line is east to west. If it's north to south then rotate everything by 90 degrees.
+		//First we get and approximation of the line of 3 pixels above and below c.
+		float3 n2=horiz ? ne+nw : ne+se;
+		float3 s2=horiz ? se+sw : nw+sw;
+		n2-=c;
+		s2-=c;
+			
+		//Calculate FXAA before sharpening
+		if(fxaa_enabled) {	
 			//Get two more pixels further away on the possible line.
 			float dist = 3.5;
-			float2 wwpos = horiz ? BUFFER_PIXEL_SIZE*float2(-dist, 0) : BUFFER_PIXEL_SIZE*float2(0, +dist) ;
-			float2 eepos = horiz ? BUFFER_PIXEL_SIZE*float2(+dist, 0) : BUFFER_PIXEL_SIZE*float2(0, -dist) ;
+			float2 wwpos = horiz ? float2(-dist, 0) : float2(0, +dist) ;
+			float2 eepos = horiz ? float2(+dist, 0) : float2(0, -dist) ;
 						
-			float3 ww = tex2D(samplerColor, texcoord + wwpos).rgb;	
-			float3 ee = tex2D(samplerColor, texcoord + eepos).rgb;
+			float3 ww = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*wwpos).rgb;	
+			float3 ee = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*eepos).rgb;
 				
 			// We are looking for a step ███▄▄▄▄▄___ which should be smoothed to look like a slope. 
 			// We have a diamond of 4 values. We look for the strength of each diagonal. If one is significantly bigger than the other we have a step!
@@ -423,51 +446,55 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			//ww            ee
 			//       s2
 				
-			float d1 = dot(luma,abs((ww-n2)-(ee-s2)));
-			float d2 = dot(luma,abs((ee-n2)-(ww-s2)));
+			float3 d1 = abs((ww-n2)-(ee-s2));
+			float3 d2 = abs((ee-n2)-(ww-s2));
 				  
 				
 			// We compare the biggest diff to the total. The bigger the difference the stronger the step shape.
 			// Add step_detect_threshold to avoid blurring where not needed and to avoid divide by zero. We're in linear colour space, but monitors and human vision isn't. Darker pixels need smaller threshold than light ones, so we adjust the threshold.
 				
-			float total_diff = (d1+d2) + step_detect_threshold*sqrt(dot(luma,smooth));		
-			float max_diff = max(d1,d2);
+			float3 total_diff = (d1+d2) + step_detect_threshold*sqrt(smooth);					
+			float3 max_diff = max(d1,d2);
 				
 			//score between 0 and 1
-			float score = (max_diff/total_diff);			
+			float score = dot(luma,(max_diff/total_diff));			
 								
 			//ratio of sharp to smooth
 			//If score > 0.5 then smooth. Anything less goes to zero,
-			ratio = max( mad(2,score,-1), 0);	
+			ratio = max( 2*score-1, 0);	
 		}
 		
+		float sharp_multiplier = sharp_strength;
 		
-		if(sharp_enabled || dof_enabled) {
-			//depth check - don't sharpen/blur background images with depth 1.
-			if(depth < 1) {
-				float sharp_multiplier = 0;
-				if(sharp_enabled) sharp_multiplier = sharp_strength;
-		
-				// If DOF enabled, we adjust sharpening/bluring based on depth.
-				if(dof_enabled) sharp_multiplier = lerp(sharp_multiplier,-dof_strength,depth);				
-						
-				float3 sharp_diff = (c-smooth)*4;
-				
-				//If pixel will get brighter, then weaken the amount. Looks better.
-				if(dot(luma,sharp_diff)*sharp_multiplier >= 0) sharp_diff *= lighten_ratio;
-				
-				// now sharpen c but no more than 20% of way towards 0 or 1.
-				c = clamp(c + sharp_diff*sharp_multiplier, c*.80, c*.80+.20); 					
-			}
+		// If DOF enabled, we adjust sharpening/bluring based on depth.
+		if(dof_enabled) {
+			sharp_multiplier = lerp(sharp_multiplier,0,depth);		
+			c = lerp(c,smooth,dof_strength*depth);		
 		}
+			
+		if(sharp_enabled) {
+			float3 sharp_diff1 = (c-n2);
+			float3 sharp_diff2 = (c-s2);
+			
+			//median of diff1, diff2 and 0 - this is to avoid making a solid line along horizontal or vertical edge
+			float3 sharp_diff = clamp(sharp_diff1, min(sharp_diff2,0), max(sharp_diff2,0))*4;
+								
+			//If pixel will get brighter, then weaken the amount. Looks better.
+			if(dot(luma,sharp_diff) >= 0) sharp_diff *= lighten_ratio;
+				
+			sharp_diff *= sharp_multiplier;
+				
+			// now sharpen c but no more than 25% of way
+			float max_sharp = sharp_strength*.15+.1;
+			c = clamp(c + sharp_diff, c*(1-max_sharp), c*(1-max_sharp*lighten_ratio)+max_sharp*lighten_ratio); 					
+		}
+		
 		
 		// Debug mode: make the smoothed option more highlighted in green.		
 		if(debug_mode==1) { c.r=c.g; c.b=c.g; smooth=lerp(c,float3(0,1,0),ratio);  } 
 		
-		//Linear interpolation between our sharp and smooth option based ratio (step score and dof).
-		
-		result = lerp(c, smooth, ratio);	
-		
+		//Now apply FXAA after sharpening		
+		c = lerp(c, smooth, ratio);			
 	}
 	
 	//Fast screen-space ambient occlusion. It does a good job of shading concave corners facing the camera, even with few samples.
@@ -483,11 +510,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		const uint points=ao_points;		
 		float s[AO_MAX_POINTS+1]; //must compile time constant
 		
-		// Every other square half the radius (if points 1 or two then always use smaller radius)
-		float radius;
-		
-		radius = ao_radius;	
-		if(square) radius = ao_radius*0.5;
+		float radius = ao_radius;	
+		// Every other square half the radius 
+		if(square) radius *= 0.5;
 				
 		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.
 		const float angle = pi/points;
@@ -530,36 +555,27 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			
 		
 		//debug Show ambient occlusion mode
-		if(debug_mode==2) result=.5;
+		if(debug_mode==2) c=.5;
 		
 		//debug: depth & ao mode
-		if(debug_mode==4) result=depth;
+		if(debug_mode==4) c=depth;
 		
 		
 		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is).
-		if(ao<0) ao*=ao_shine_strength;		
-		else ao = ao * ao_strength;
-		
-		// Adjust AO strength based on quality - otherwise it can appear to be too strong at 3 and too weak at 9.
-		//ao *= (points+3.0)/(float)AO_MAX_POINTS; 
+		ao *= (ao<0) ? ao_shine_strength : ao_strength;
 		
 		//Weaken the AO effect depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.
-		ao = ao*max(0,1-depth*rcp(ao_fog_fix));
-		
-		//Reduce AO by up to half in bright areas - makes sure shade not overdone where it's most obvious.
-		ao = lerp(ao,0,dot(luma,result)/2);
+		ao *= max(0, 1-depth/ao_fog_fix);
 		
 		//Now adjust the pixel, but no more than 50% of the way  to prevent overdoing it.
-		result = clamp( result*(1-ao), result*.5, 0.5*result +0.5 );
-		
-									
+		c = clamp( c*(1-ao), c*.5, 0.5*c +0.5 );									
 	}	
 	
 	//Show depth buffer mode
-	if(debug_mode == 3) result = depth ; 
-	if(debug_mode==5) result = (result+depth) /2;
+	if(debug_mode == 3) c = depth ; 
+	if(debug_mode==5) c = (c+depth) /2;
 			
-	return result;	
+	return c;	
 }
 
 
@@ -574,3 +590,4 @@ technique Fast_FXAA_sharpen_DOF_and_AO
 		SRGBWriteEnable = true;
 	}		
 }
+
