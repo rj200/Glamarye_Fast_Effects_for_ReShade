@@ -51,14 +51,14 @@ Setup
 		* If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
 			- If you get no depth image, set Depth of field and Ambient Occlusion to off, as they won't work.
 7. (Options) Adjust based on personal preference and what works best & looks good in the game. 
-	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.
+	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration. 
 		
 Enabled/disable effects
 =======================
 	
 **Fast FXAA** - Fullscreen approximate anti-aliasing. Fixes jagged edges.
     
-**Intelligent Sharpen** - Sharpens image, but working with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
+**Intelligent Sharpen** - Sharpens details but not straight edges (avoiding artefacts). It works with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
 
 **Depth of field (DOF) (requires depth buffer)** - Softens distant objects subtly, as if slightly out of focus. 
     
@@ -102,7 +102,7 @@ Tips:
 Advanced options 
 ================
 	
-You should not need to tweak these and doing so will probably make it look worse.
+You should not need to tweak these.
 	
 **AO -> AO²** - Squares the amount ambient occlusion applied to each pixel. Looks more realistic, but the AO may become too subtle in some areas. At lower AO strength levels or if you have low-contrast screen you might want to turn it off. 
 		
@@ -120,7 +120,7 @@ Tech details
 	
 Combining FXAA, sharpening and depth of field in one shader works better than separate ones because the algorithms work together. Each pixel is sharpened or softened only once, and where FXAA detects strong edges they're not sharpened. With seperate shaders sometimes sharpening can undo some of the good work of FXAA. More importantly, it's much faster because we only read the pixels only once.
 	
-GPUs are so fast that memory is the performance bottleneck. While developing I found that number of texture reads was the biggest factor in performance. Interestingly, it's the same if you're reading one texel, or the bilinear interpolation of 4 adjacent ones (interpolation is implemented in hardware such that it is basically free). Each pass has noticable cost too. Therefore everything is combined in one pass, with the algorithms designed to use as few reads as possible. Fast FXAA makes 7 reads per pixel. Sharpen uses 5 reads, but 5 already read by FXAA so if both are enabled it's basically free. Depth of field also re-uses the same 5 pixels, but adds 3 reads from the depth buffer. If Depth of field is enabled, ambient occlusion adds just 1-9 more depth buffer reads (depending on quality level set). 
+GPUs are so fast that memory is the performance bottleneck. While developing I found that number of texture reads was the biggest factor in performance. Interestingly, it's the same if you're reading one texel, or the bilinear interpolation of 4 adjacent ones (interpolation is implemented in hardware such that it is basically free). Each pass has noticable cost too. Therefore everything is combined in one pass, with the algorithms designed to use as few reads as possible. Fast FXAA makes 7 reads per pixel. Sharpen uses 5 reads, but 5 already read by FXAA so if both are enabled it's basically free. Depth of field also re-uses the same 5 pixels, but adds a read from the depth buffer. Ambient occlusion adds 3-9 more depth buffer reads (depending on quality level set). 
 	
 FXAA starts with the centre pixel, plus 4 samples each half a pixel away diagonally; each of the 4 samples is the average of four pixels. Based on their shape it then samples two more points 3.5 pixels away horizontally or vertically. We look at the diamond created ◊ and look at the change along each side of the diamond. If the change is bigger on one pair of parallel edges and small on the other then we have an edge. The size of difference determines the score, and then we blend between the centre pixel and a smoothed using the score as the ratio. 
 
@@ -129,21 +129,22 @@ The smooth option is the four nearby samples minus the current pixel. Effectivel
 2 0 2  / 12;
 1 2 1
 	
-Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each. It then uses the median of zero and the two sharp options. It also has a hard limit on maximum change in pixel value of 25%. It darkens pixels more than it brightens them; this looks more realistic. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
+Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each. It then uses the median of zero and the two sharp options. It also has a hard limit on maximum change in pixel value of 10%-30% (20% at default 0.5 strength). It darkens pixels more than it brightens them; this looks more realistic. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
 	
 Depth of field is subtle; this implementation isn't a fancy cinematic focus effect. Good to enable if using strong sharpening, as it takes the edge of the background and helps emphasise the foreground. If DOF blur is set to zero, then it just reduces the strength of sharpening, so sharpening gradually disappears in the distance. If DOF blur is higher, it also blurs pixels, increasing blur with distance - at 1 pixels at maximum depth as set to the smooth value. Depth of field is applied before sharpening.
 		
 Ambient occlusion adds shade to concave areas of the scene. It's a screen space approximation of the amount of ambient light reaching every pixel. It uses the depth buffer generated by the rasterisation process. Without ambient occlusion everything looks flat. However, ambient occlusion should be subtle and not be overdone. Have a look around in the real world - the bright white objects with deep shading you see in research papers just aren't realistic. If you're seeing black shade on bright objects, or if you can't see details in dark scenes then it's too much. However, exagerating it just a little bit compared to the real-world is good - it's another depth clue for your brain and makes the flat image on the flat screen look more 3D.  
 	
-Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it look like it's using more samples than it does. Unlike well known techniques like SSAO and HBAO it doesn't try to adapt to the local normal vector of the pixel - it picks sample points in a simple circle around the pixel. Samples that are in closer to the camera than the current pixel add shade, ones further away don't. At least half the samples must be closer for any shade to be cast (so pixels on flat surfaces don't get shaded, as they'll be half in-front at most). It has 3 tricks to improve on simply counting how many samples are closer.
-	1. Any sample more than 5% closer is set to be equal to current pixel's depth, and any more than 5% further away is set to just be 5% further. We want to measure shade from close objects and surface contours; distant objects should not affect it.
-	2. Our 3-9 samples are equally spaced in a circle (well, it's a polygon approximating a circle.) We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
-	3. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
-Amazingly, this gives quite decent results even with only 3 points in the circle (4 depth reads in total, including the centre one shared with depth of field.)
+Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it look good with few samples. Unlike well known techniques like SSAO and HBAO it doesn't try to adapt to the local normal vector of the pixel - it picks sample points in a simple circle around the pixel. Samples that are in closer to the camera than the current pixel add shade, ones further away don't. At least half the samples must be closer for any shade to be cast (so pixels on flat surfaces don't get shaded, as they'll be half in-front at most). It has 4 tricks to improve on simply counting how many samples are closer.
+	1. Any sample significantly closer is discarded and replaced with an estimated sample based on the opposite point. This prevents nearby objects casting unrealistic shadows and far away ones. Any sample more than significantly further away is clamped to a maximum. AO is a local effect - we want to measure shade from close objects and surface contours; distant objects should not affect it.
+	2. Our 3-9 samples are equally spaced in a circle. We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
+	3. The average difference between adjacent points is calculated. This variance value is used to add fuzziness to the linear interpolation in step 2 - we assume points on the line randomlyh vary in depth by this amount. This makes shade smoother so you don't get solid bands of equal shade. 
+	4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
+Amazingly, this gives quite decent results even with only 3-9 points in the circle (4 depth reads in total, including the centre one shared with depth of field.)
 	
 Ideas for future improvement:
 
-Fog detection and adjust ambient occlusion range dynamically.
+Auto-tuning for AO - detect fog, menus, depth buffer type, and adapt.
 			
 History:
 
@@ -197,14 +198,14 @@ uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 1; ui_step = .05;
 	ui_tooltip = "For values > 0.5 I suggest depth of field too. ";
 	ui_label = "Sharpen strength";
-> = .5;
+> = .75;
 
 uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Tuning and Configuration";
 	ui_min = 0; ui_max = 1; ui_step = .05;
 	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).";
 	ui_label = "DOF blur";
-> = 0;
+> = 0.25;
 
 
 //Diminishing returns after 9 points. More would need a more sophisticated sampling pattern.
@@ -220,7 +221,7 @@ uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
 	ui_tooltip = "Ambient Occlusion. Higher mean deeper shade in concave areas.";
 	ui_label = "AO strength";
-> = 0.5;
+> = 0.75;
 
 
 uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
@@ -228,7 +229,7 @@ uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0.0; ui_max = .5; ui_step = .05;
     ui_label = "AO shine";
     ui_tooltip = "Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer.";
-> = 0;
+> = .25;
 
 
 uniform int ao_points < __UNIFORM_SLIDER_INT1
@@ -243,7 +244,7 @@ uniform float ao_radius < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0.0; ui_max = 50; ui_step = 1;
 	ui_tooltip = "Ambient Occlusion affected area, in screen-space pixels. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. May need adjusting based on your screen size/resolution";
 	ui_label = "AO radius";
-> = 15.0;
+> = 20.0;
 
 uniform float ao_fog_fix < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Tuning and Configuration";
@@ -264,28 +265,26 @@ uniform int debug_mode <
 	ui_tooltip = "Handy when tuning ambient occlusion settings.";
 > = 0;
 
-
-
 uniform bool ao_square<
     ui_category = "Advanced Options";
     ui_label = "AO -> AO²";
     ui_tooltip = "Squares the amount ambient occlusion applied to each pixel. Looks more realistic, but the AO may become too subtle in some areas. At lower AO strength levels or if you have low-contrast screen you might want to turn it off. ";
     ui_type = "radio";
-> = true;
+> = false;
 
 uniform float ao_shape_modifier < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
 	ui_min = 1; ui_max = 50; ui_step = 1;
 	ui_tooltip = "Ambient occlusion. If you have a good, high-contrast depth buffer, you can increase to reduce excessive shading in nearly flat areas. May want to reduce to 1 or 2 if using ambient shine.";
 	ui_label = "AO shape modifier";
-> = 5;
+> = 25;
 
 uniform float ao_range < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
-	ui_min = 0; ui_max = .1; ui_step = 0.01;
+	ui_min = 0; ui_max = .01; ui_step = 0.0001;
 	ui_tooltip = "Ambient occlusion biggest depth difference to allow. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.";
 	ui_label = "AO max depth diff";
-> = 0.05;
+> = 0.005;
 
 uniform float step_detect_threshold < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
@@ -309,16 +308,6 @@ uniform bool abtest <
     ui_type = "radio";
 > = false;
 
-
-/*
-Not used. This is now varied from .1 t o .25 based on sharp_strength.
-uniform float max_sharp < __UNIFORM_SLIDER_FLOAT1
-	ui_category = "Advanced Options";
-	ui_min = 0.000; ui_max = 0.5; ui_step = .01;
-	ui_tooltip = "Maximum change in any pixel from sharpen or DOF. Increase for more sharpness, decrease to reduce artefacts such as visible lines on horizontal or vertical edges. ";
-	ui_label = "Maximum sharpen";
-> = 0.25;
-*/
 
 //////////////////////////////////////////////////////////////////////
 
@@ -391,6 +380,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 {	
 	//centre (original pixel)
 	float3 c = tex2D(samplerColor, texcoord).rgb;
+	float3 original_c = c;
 	
 	//centre pixel depth
 	float depth=0;
@@ -404,6 +394,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 	
 	const bool run_fxaa = fxaa_enabled || debug_mode==1 || debug_mode==4;
 	
+	float ratio=0;
+	float3 smooth =0;
+	
 	if(run_fxaa || sharp_enabled || dof_enabled ) {
 	
 		//Average of the four nearest pixels to each diagonal.
@@ -412,10 +405,10 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		float3 se = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*float2(.5,-.5)).rgb;
 		float3 nw = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*float2(-.5,.5)).rgb;
 				
-		float ratio=0;
+		
 		
 		// Average of surrounding pixels, both smoothing edges (FXAA) 
-		float3 smooth = ((ne+nw)+(se+sw)-c)/3;	
+		smooth = ((ne+nw)+(se+sw)-c)/3;	
 		
 		//Do we have horizontal or vertical line?
 		float dy = dot(luma,abs((ne+nw)-(se+sw)));
@@ -438,7 +431,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 						
 			float3 ww = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*wwpos).rgb;	
 			float3 ee = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*eepos).rgb;
-				
+						
 			// We are looking for a step ███▄▄▄▄▄___ which should be smoothed to look like a slope. 
 			// We have a diamond of 4 values. We look for the strength of each diagonal. If one is significantly bigger than the other we have a step!
 			//       n2
@@ -470,25 +463,24 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			sharp_multiplier = lerp(sharp_multiplier,0,depth);		
 			c = lerp(c,smooth,dof_strength*depth);		
 		}
-			
+		
 		if(sharp_enabled) {
 			float3 sharp_diff1 = (c-n2);
 			float3 sharp_diff2 = (c-s2);
-			
+						
 			//median of diff1, diff2 and 0 - this is to avoid making a solid line along horizontal or vertical edge
-			float3 sharp_diff = clamp(sharp_diff1, min(sharp_diff2,0), max(sharp_diff2,0))*4;
+			float3 sharp_diff = clamp(sharp_diff1, min(sharp_diff2,0), max(sharp_diff2,0))*2;
+			
+			// sharpen c but no more than 30% of way from c
+			float max_sharp = sharp_strength*.2+.1;
+						
+			sharp_diff *= sharp_multiplier;
 			
 			//If pixel will get brighter, then weaken the amount. Looks better.
 			if(dot(luma,sharp_diff) >= 0) sharp_diff *= lighten_ratio;
-				
-			sharp_diff *= sharp_multiplier;
-							
-			// sharpen c but no more than 25% of way
-			float max_sharp = sharp_strength*.15+.1;
 			
-			c = clamp(c + sharp_diff, c*(1-max_sharp), c*(1-max_sharp*lighten_ratio)+max_sharp*lighten_ratio); 					
+			c = clamp(c + sharp_diff, c*(1-max_sharp), c*(1-max_sharp*lighten_ratio)+max_sharp*lighten_ratio); 						
 		}
-		
 		
 		// Debug mode: make the smoothed option more highlighted in green.		
 		if(debug_mode==1) { c.r=c.g; c.b=c.g; smooth=lerp(c,float3(0,1,0),ratio);  } 
@@ -507,64 +499,100 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		
 		//our sample points. 
 		const uint points=ao_points;		
-		float s[AO_MAX_POINTS+1]; //must compile time constant
+		float s[AO_MAX_POINTS]; //must compile time constant
 		
-		float radius = ao_radius;	
-		// Every other square half the radius 
-		if(square) radius *= 0.5;
-				
-		float ao=0;
-		
-		// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
-		const float shape = radius*FLT_EPSILON*ao_shape_modifier; 
 		
 		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.
 		const float pi = radians(180);
 		const float angle = pi/points;
-	
-		[unroll]
-		for(uint i = 1; i<=points; i++) {
-			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
-			float2 the_vector = square ? ao_radius*.5*BUFFER_PIXEL_SIZE*float2( sin((i*2+1)*angle), cos((i*2+1)*angle) ) : ao_radius*BUFFER_PIXEL_SIZE*float2( sin((i*2)*angle), cos((i*2)*angle) );
 			
-			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.
-			s[i] = pointDepth( texcoord+the_vector);	
-				
-			//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - set it to = depth of centre.
-			if( s[i] < depth*(1-ao_range) ) s[i] = depth;
-								
-			//If s[i] is much farther than depth then bring it closer so that one distance point have too much effect.
-			s[i] = min( s[i], depth*(1+ao_range) );
-		}
-			
-		s[0]=s[points];			//Avoid mod operation later			
-		float total=0;
-						
+		// Get circle of depth samples.
 		[unroll]
 		for(uint i = 0; i<points; i++) {
-			// naive algorithm is to just add up all the sample points that cast shade. Instead we interpolate between adjacent points in the circle. Imagine the arc between two ajacent points - we're estimating the fraction of it that is in front of the centre point.
-			float near=min(s[i],s[i+1]);
-			float far=max(s[i],s[i+1]) + shape;
-			float crossing = (depth-near)/(far-near);
-			total += clamp(crossing,0,1);											
+			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
+			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
+			float2 the_vector = square ? ao_radius*.4*BUFFER_PIXEL_SIZE*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) ) : ao_radius*BUFFER_PIXEL_SIZE*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
+									
+			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.
+			s[i] = pointDepth( texcoord+the_vector);				
 		}
-			
-		//average total/points will be 0.5	- average level of AO needs to be 0;			
-		ao=2*total/points -1;
-		
-		if(ao_square) ao = abs(ao)*ao;			
-		
-		//debug Show ambient occlusion mode
-		if(debug_mode==2) c=.5;
-		
-		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is).
-		ao *= (ao<0) ? ao_shine_strength : ao_strength;
 				
-		//Now adjust the pixel, but no more than 50% of the way  to prevent overdoing it.
-		float3 ao_applied  = clamp( c*(1-ao), c*.5, 0.5*c +0.5 );
+		//Now deal with points to close or to far to affect shade.
+		[unroll]
+		for(uint i = 0; i<points; i++) {
+			//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
+			if( sqrt(s[i]) < sqrt(depth)-ao_range ) {
+				if(points%2) s[i] = ( depth*4-s[(i+points/2)%points]-s[(1+i+points/2)%points] )/2;
+				else s[i] = ( depth*2-s[(i+points/2)%points] );				
+			}
+		}
+		
+		[unroll]
+		for(uint i = 0; i<points; i++) {
+			//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
+			s[i] = min( s[i], depth+ao_range );	
+		}
+		
+		//Now estimate the local variation - sum of differences between adjacent points.
+		float diff = abs(s[0]-s[points-1]);
+		[unroll]
+		for(uint i = 0; i<points-1; i++) {
+			diff = diff + abs(s[i]-s[i+1]);
+		}
+		
+		float variance = diff/ao_points;
+		
+		//Our strength adjustment
+		variance = variance/ao_strength;
+		
+		// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
+		const float shape = ao_radius*FLT_EPSILON*ao_shape_modifier; 
+		variance += shape;
+		
+		//Now calculate how much of the circle is in front of or behind our centre point.
+		float total=0;
+		[unroll]
+		for(uint i = 0; i<points; i++) {
+			uint j = (i+1)%points;
+			// naive algorithm is to just add up all the sample points that cast shade. Instead we interpolate between adjacent points in the circle. Imagine the arc between two ajacent points - we're estimating the fraction of it that is in front of the centre point.
+			float near=min(s[i],s[j]); 
+			float far=max(s[i],s[j]); 
+			
+			//This is the magic that makes shaded areas smooth instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
+			near -= variance;
+			far  += variance;
+			
+			//Linear interpolation - 
+			float crossing = (depth-near)/(far-near);
+			
+			//If depth is between near and far, crossing is between 0 and 1. If not, clamp it. Then adjust it to be between -1 and +1.
+			crossing = 2*clamp(crossing,0,1)-1;
+			
+			if(ao_square) crossing = crossing*abs(crossing);
+			
+			total += crossing;
+		}
+							
+		// now we know how much the point is occluded. 
+		float ao = total/points;
+		
+		// It still needs some tweaks though...
+		
+		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
+		if (ao<0) ao*= ao_shine_strength;
 		
 		//Weaken the AO effect depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.
-		c = lerp(ao_applied, c, depth/ao_fog_fix);
+		ao = ao*(1-depth/ao_fog_fix);
+		
+				
+		//debug Show ambient occlusion mode
+		if(debug_mode==2) c=0.5;
+		
+		//apply AO
+		c = c*(1-ao);
+		
+		//Now clamp the pixel to avoid going conpletely black (or white with ao_shine).
+		if(!debug_mode) c = clamp( c, .25*original_c, .5*original_c +0.5 );
 	}	
 	
 	//Show depth buffer mode
