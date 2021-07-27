@@ -78,7 +78,7 @@ Fine Tuning
 
 **AO quality** - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. TIP: Hit reload button after changing this (performance bug workaround).
 
-**AO radius** - Ambient Occlusion affected area, in screen-space pixels. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. May need adjusting based on your screen resolution.
+**AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 
 
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.;
 
@@ -106,9 +106,9 @@ You should not need to tweak these.
 	
 **AO -> AO²** - Squares the amount ambient occlusion applied to each pixel. Looks more realistic, but the AO may become too subtle in some areas. At lower AO strength levels or if you have low-contrast screen you might want to turn it off. 
 		
-**AO shape modifier** - Ambient occlusion. If you have a good, high-contrast depth buffer, you can increase to reduce excessive shading in nearly flat areas. May want to reduce to 2 if using ambient shine.
+**AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
-**AO max depth diff** - Ambient occlusion biggest depth difference to allow. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
+**AO max depth diff** - Ambient occlusion biggest depth difference to allow, as percent of depth. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
 	
 **Fast FXAA threshold** - Shouldn't need to change this. Smoothing starts when the step shape is stronger than this. Too high and some steps will be visible. Too low and subtle textures will lose detail.
 	
@@ -208,10 +208,6 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 > = 0.25;
 
 
-//Diminishing returns after 9 points. More would need a more sophisticated sampling pattern.
-#ifndef AO_MAX_POINTS
-	#define AO_MAX_POINTS 9
-#endif
 
 
 
@@ -232,19 +228,25 @@ uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
 > = .25;
 
 
+
+//Diminishing returns after 9 points. More would need a more sophisticated sampling pattern.
+#ifndef AO_MAX_POINTS
+	#define AO_MAX_POINTS 10
+#endif
+
 uniform int ao_points < __UNIFORM_SLIDER_INT1
 	ui_category = "Tuning and Configuration";
-	ui_min = 3; ui_max = AO_MAX_POINTS; ui_step = 1;
+	ui_min = 2; ui_max = AO_MAX_POINTS; ui_step = 1;
 	ui_tooltip = "Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. Tip: Hit reload button after changing this (performance bug workaround). ";
 	ui_label = "AO quality";
 > = 6;
 
 uniform float ao_radius < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Tuning and Configuration";
-	ui_min = 0.0; ui_max = 50; ui_step = 1;
-	ui_tooltip = "Ambient Occlusion affected area, in screen-space pixels. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. May need adjusting based on your screen size/resolution";
+	ui_min = 0.0; ui_max = 2; ui_step = 0.01;
+	ui_tooltip = "Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. ";
 	ui_label = "AO radius";
-> = 20.0;
+> = 1;
 
 uniform float ao_fog_fix < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Tuning and Configuration";
@@ -274,17 +276,17 @@ uniform bool ao_square<
 
 uniform float ao_shape_modifier < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
-	ui_min = 1; ui_max = 50; ui_step = 1;
-	ui_tooltip = "Ambient occlusion. If you have a good, high-contrast depth buffer, you can increase to reduce excessive shading in nearly flat areas. May want to reduce to 1 or 2 if using ambient shine.";
+	ui_min = 1; ui_max = 2000; ui_step = 1;
+	ui_tooltip = "Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. ";
 	ui_label = "AO shape modifier";
-> = 25;
+> = 500;
 
-uniform float ao_range < __UNIFORM_SLIDER_FLOAT1
+uniform float ao_max_depth_diff < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
-	ui_min = 0; ui_max = .01; ui_step = 0.0001;
-	ui_tooltip = "Ambient occlusion biggest depth difference to allow. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.";
+	ui_min = 0; ui_max = 1; ui_step = 0.001;
+	ui_tooltip = "Ambient occlusion biggest depth difference to allow, as percent of depth. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.";
 	ui_label = "AO max depth diff";
-> = 0.005;
+> = 0.5;
 
 uniform float step_detect_threshold < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Options";
@@ -501,17 +503,17 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		const uint points=ao_points;		
 		float s[AO_MAX_POINTS]; //must compile time constant
 		
-		
 		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.
 		const float pi = radians(180);
 		const float angle = pi/points;
-			
-		// Get circle of depth samples.
+		
+		// Get circle of depth samples.		
 		[unroll]
 		for(uint i = 0; i<points; i++) {
 			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
 			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
-			float2 the_vector = square ? ao_radius*.4*BUFFER_PIXEL_SIZE*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) ) : ao_radius*BUFFER_PIXEL_SIZE*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
+			// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.
+			float2 the_vector = square ? .004*ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) ) : (min(.002*points,.01))*ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
 									
 			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.
 			s[i] = pointDepth( texcoord+the_vector);				
@@ -521,22 +523,25 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		[unroll]
 		for(uint i = 0; i<points; i++) {
 			//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
-			if( sqrt(s[i]) < sqrt(depth)-ao_range ) {
+			if( sqrt(s[i]) < sqrt(depth)-0.01*ao_max_depth_diff ) {
 				if(points%2) s[i] = ( depth*4-s[(i+points/2)%points]-s[(1+i+points/2)%points] )/2;
 				else s[i] = ( depth*2-s[(i+points/2)%points] );				
 			}
 		}
 		
+		
+		
 		[unroll]
 		for(uint i = 0; i<points; i++) {
 			//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
-			s[i] = min( s[i], depth+ao_range );	
+			s[i] = min( s[i], depth+0.01*ao_max_depth_diff );			
 		}
+		
 		
 		//Now estimate the local variation - sum of differences between adjacent points.
 		float diff = abs(s[0]-s[points-1]);
 		[unroll]
-		for(uint i = 0; i<points-1; i++) {
+		for(uint i = 0; i<points-1; i++) {			
 			diff = diff + abs(s[i]-s[i+1]);
 		}
 		
@@ -546,7 +551,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		variance = variance/ao_strength;
 		
 		// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
-		const float shape = ao_radius*FLT_EPSILON*ao_shape_modifier; 
+		const float shape = FLT_EPSILON*ao_shape_modifier; 
 		variance += shape;
 		
 		//Now calculate how much of the circle is in front of or behind our centre point.
@@ -576,6 +581,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		// now we know how much the point is occluded. 
 		float ao = total/points;
 		
+		// For points 2 and 3 reduce strength (otherwise artefacts too obvious).
+		ao*=min(0.25*points,1);
+		
 		// It still needs some tweaks though...
 		
 		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
@@ -583,7 +591,6 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		
 		//Weaken the AO effect depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.
 		ao = ao*(1-depth/ao_fog_fix);
-		
 				
 		//debug Show ambient occlusion mode
 		if(debug_mode==2) c=0.5;
