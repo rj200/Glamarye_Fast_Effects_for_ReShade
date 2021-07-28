@@ -7,6 +7,7 @@ License: MIT
 	
 Copyright 2021 Robert Jessop
 	
+	
 About
 =====
 	
@@ -31,13 +32,14 @@ Setup
 3. Run the game
 4. Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options (if it has them).
 5. Call up ReShade's interface in game and enable Fast_FXAA_sharpen_DOF_and_AO
-6. Check if depth buffer is working and set up correctly. If not, then set depth of field and AO strength to 0. 
+6. Check if depth buffer is working and set up correctly. If not, disable the Depth of field and Ambient Occlusion effects for a small performance improvement. 
 	- Check ReShade's supported games list to see any notes about depth buffer first. 
 	- Check in-game (playing, not in a menu or video cutscene):
 	- Use the built-in "Debug: show depth buffer" to check it's there and "Debug: show depth and FXAA edges" to check it's aligned.		
 	- Close objects should be black and distant ones white. It should align with shapes in the image.
 		* If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
 			- If you get no depth image, set Depth of field and Ambient Occlusion to off, as they won't work.
+	- If depth is always available during gameplay then enabling Detect menus and videos is recommended. 
 7. (Options) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration. 
 		
@@ -45,12 +47,14 @@ Enabled/disable effects
 =======================
 	
 **Fast FXAA** - Fullscreen approximate anti-aliasing. Fixes jagged edges.
-    
+
 **Intelligent Sharpen** - Sharpens details but not straight edges (avoiding artefacts). It works with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
 
 **Depth of field (DOF) (requires depth buffer)** - Softens distant objects subtly, as if slightly out of focus. 
-    
+
 **Fast Ambient Occlusion (AO) (requires depth buffer)** - Ambient occlusion shades pixels that are surrounded by pixels closer to the camera - concave shapes. It's a simple approximation of the of ambient light reaching each area (i.e. light just bouncing around the world, not direct light.)
+
+**Detect menus & videos (requires depth buffer)** - Skip all processing if depth value is 0 or 1 (per pixel). Full-screen videos and 2D menus probably do not need anti-aliasing nor sharpenning, and may lose worse with them. Only enable if depth buffer always available in gameplay!
     
 
 Fine Tuning
@@ -75,24 +79,26 @@ Debugging
 
 **Output mode** - Debug view helps understand what the algorithms are doing. Especially handy when tuning ambient occlusion settings.
 
+
 Tips: 
-	- Check if game provides depth buffer! if not turn of depth of field and ambient occlusion for better performance.
-	- If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
-	- If you don't like an effect then reduce it or turn it off. Disabling effects improves performance, except sharpening, which is basically free if FXAA or depth of field is on.	
-	- If the game uses lots of semi-transparent effects like smoke or fog, and you get incorrect shadows/silluettes then you may need to tweak AO max distance. Alternatively, you could use the game's own slower SSAO option if it has one. This is a limitation of ReShade and similar tools, ambient occlusion should be drawn before transparent objects, but ReShade can only work with the output of the game and apply it afterwards.
-	- You can mix and match with in-game options or other ReShade shaders, though you lose some the performance benefits of a combined shader.
-	- Experiment!
-		* How much sharpen and depth of field is really a matter of personal taste. 
-		* Don't be afraid to try lower AO quality levels if you want maximum performance. Even a little bit of AO can make the image look less flat.
-		* Be careful with ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. It looks cool at the maximum but is it realistic? Less can be more; even a tiny bit of AO makes everything look more three-dimensional.
+
+- Check if game provides depth buffer! If not turn of depth of field, ambient occlusion and detect menus for better performance (they won't affect the image if left on by mistake).
+- If depth is always available during gameplay then enabling Detect menus and videos is recommended to make non-gamplay parts clearer. 
+- If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
+- If you don't like an effect then reduce it or turn it off. Disabling effects improves performance, except sharpening, which is basically free if FXAA or depth of field is on.	
+- If the game uses lots of semi-transparent effects like smoke or fog, and you get incorrect shadows/silluettes then you may need to tweak AO max distance. Alternatively, you could use the game's own slower SSAO option if it has one. This is a limitation of ReShade and similar tools, ambient occlusion should be drawn before transparent objects, but ReShade can only work with the output of the game and apply it afterwards.
+- You can mix and match with in-game options or other ReShade shaders, though you lose some the performance benefits of a combined shader.
+- Experiment!
+	* How much sharpen and depth of field is really a matter of personal taste. 
+	* Don't be afraid to try lower AO quality levels if you want maximum performance. Even a little bit of AO can make the image look less flat.
+	* Be careful with ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. It looks cool at the maximum but is it realistic? Less can be more; even a tiny bit of AO makes everything look more three-dimensional.
+		
 		
 	
 Advanced options 
 ================
 	
 You should not need to tweak these.
-	
-**AO -> AO²** - Squares the amount ambient occlusion applied to each pixel. Looks more realistic, but the AO may become too subtle in some areas. At lower AO strength levels or if you have low-contrast screen you might want to turn it off. 
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
@@ -125,17 +131,17 @@ Ambient occlusion adds shade to concave areas of the scene. It's a screen space 
 	
 Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it look good with few samples. Unlike well known techniques like SSAO and HBAO it doesn't try to adapt to the local normal vector of the pixel - it picks sample points in a simple circle around the pixel. Samples that are in closer to the camera than the current pixel add shade, ones further away don't. At least half the samples must be closer for any shade to be cast (so pixels on flat surfaces don't get shaded, as they'll be half in-front at most). It has 4 tricks to improve on simply counting how many samples are closer.
 
-1. Any sample significantly closer is discarded and replaced with an estimated sample based on the opposite point. This prevents nearby objects casting unrealistic shadows and far away ones. Any sample more than significantly further away is clamped to a maximum. AO is a local effect - we want to measure shade from close objects and surface contours; distant objects should not affect it.
-2. Our 2-10 samples are equally spaced in a circle. We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
-3. The average difference between adjacent points is calculated. This variance value is used to add fuzziness to the linear interpolation in step 2 - we assume points on the line randomlyh vary in depth by this amount. This makes shade smoother so you don't get solid bands of equal shade. 
-4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
-	
+	1. Any sample significantly closer is discarded and replaced with an estimated sample based on the opposite point. This prevents nearby objects casting unrealistic shadows and far away ones. Any sample more than significantly further away is clamped to a maximum. AO is a local effect - we want to measure shade from close objects and surface contours; distant objects should not affect it.
+	2. Our 2-10 samples are equally spaced in a circle. We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
+	3. The average difference between adjacent points is calculated. This variance value is used to add fuzziness to the linear interpolation in step 2 - we assume points on the line randomlyh vary in depth by this amount. This makes shade smoother so you don't get solid bands of equal shade. 
+	4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
+
 Amazingly, this gives quite decent results even with very few points in the circle.
-	
+
 Ideas for future improvement:
 
 Auto-tuning for AO - detect fog, menus, depth buffer type, and adapt.
-			
+
 History:
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
