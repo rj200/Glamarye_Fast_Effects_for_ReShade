@@ -29,7 +29,7 @@ It combines 4 effects in one shader for speed. Each can be enabled or disabled.
 1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. It's about twice as fast as normal FXAA and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed quite so smoothly.
 2. Intelligent Sharpening. Improves clarity of texture details.
 3. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
-4. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. It has an optional "bounce lighting" mode, which blends in the reflected colour from occluding surfaces, but it is slower. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.
+4. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. It has an optional "bounce lighting" mode, which blends in the reflected colour from a nearby surface. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.
 	
 3 and 4 require depth buffer access.
 
@@ -150,18 +150,23 @@ Ambient occlusion adds shade to concave areas of the scene. It's a screen space 
 	
 Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it look good with few samples. Unlike well known techniques like SSAO and HBAO it doesn't try to adapt to the local normal vector of the pixel - it picks sample points in a simple circle around the pixel. Samples that are in closer to the camera than the current pixel add shade, ones further away don't. At least half the samples must be closer for any shade to be cast (so pixels on flat surfaces don't get shaded, as they'll be half in-front at most). It has 4 tricks to improve on simply counting how many samples are closer.
 
-	1. Any sample significantly closer is discarded and replaced with an estimated sample based on the opposite point. This prevents nearby objects casting unrealistic shadows and far away ones. Any sample more than significantly further away is clamped to a maximum. AO is a local effect - we want to measure shade from close objects and surface contours; distant objects should not affect it.
-	2. Our 2-10 samples are equally spaced in a circle. We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
-	3. The average difference between adjacent points is calculated. This variance value is used to add fuzziness to the linear interpolation in step 2 - we assume points on the line randomlyh vary in depth by this amount. This makes shade smoother so you don't get solid bands of equal shade. 
-	4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
+1. Any sample significantly closer is discarded and replaced with an estimated sample based on the opposite point. This prevents nearby objects casting unrealistic shadows and far away ones. Any sample more than significantly further away is clamped to a maximum. AO is a local effect - we want to measure shade from close objects and surface contours; distant objects should not affect it.
+2. Our 2-10 samples are equally spaced in a circle. We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
+3. The average difference between adjacent points is calculated. This variance value is used to add fuzziness to the linear interpolation in step 2 - we assume points on the line randomlyh vary in depth by this amount. This makes shade smoother so you don't get solid bands of equal shade. 
+4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
 
 Amazingly, this gives quite decent results even with very few points in the circle.
 
-Ideas for future improvement:
+There are two optional variations that change the Fast Ambient Occlusion algorithm:
 
-Auto-tuning for AO - detect fog, menus, depth buffer type, and adapt.
+1. Shine. Normally AO is used only to make pixels darker. With the AO Shine setting (which is set quite low by default), we allow AO amount to be negative. This brightens convex areas (corners and bumps pointing at the camera.) Not super realistic but it really helps emphasise the shapes. This is basically free - instead of setting negative AO to zero we multiply it by ao_shine_strength.
+2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We want to find a point on the adjacent surface to sample the colour of. To do that we take the point in the circle closest to the camera, and the one opposite - one is probably the same as the centre and one an adjacent surface. We take the minimum of the two samples values to approximate the nearby surface's colour, erring on the side of less light. Next we estimate the light in the area, using the maximum of our samples and c. This is used to adjust c to estimate how much light it will reflect. We multiply this modified c with the bounce light, to get the light bouncing of the nearby surface, to c, then to the camera. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
 
-History:
+**Ideas for future improvement**
+
+Auto-tuning for AO - detect fog, depth buffer type, and adapt.
+
+**History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
@@ -206,7 +211,7 @@ uniform bool bounce_lighting <
     ui_label = "Bounce Lighting (requires AO)";
     ui_tooltip = "Approximates local ambient light colour. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use colour data as well as depth, doubling time taken. Fast Ambient Occlusion must be enabled too.";
     ui_type = "radio";
-> = false;
+> = true;
 
 
 uniform bool dof_enabled <
@@ -242,10 +247,10 @@ uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 
 uniform float bounce_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
-	ui_min = 0.0; ui_max = 1; ui_step = .05;
-    ui_label = "Bounce strength";
-    ui_tooltip = "A bright red pillar by a white wall will make the wall a bit red, but how red? Recommendation: similar strength as AO.";
-> = .7;
+	ui_min = 0.5; ui_max = 1.5; ui_step = .05;
+    ui_label = "Bounce multiplier";
+    ui_tooltip = "A bright red pillar by a white wall will make the wall a bit red, but how red? ";
+> = 1.2;
 
 uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
@@ -273,10 +278,18 @@ uniform int debug_mode <
 	ui_tooltip = "Handy when tuning ambient occlusion settings.";
 > = 0;
 
+
 //Diminishing returns after 9 points. More would need a more sophisticated sampling pattern.
+
 #ifndef AO_MAX_POINTS
-	#define AO_MAX_POINTS 10
+//directX 9 has issues with too many registers if AO_MAX_POINTS set too high.
+#if (__RENDERER__ <= 0xa000)
+	#define AO_MAX_POINTS 8
+#else
+	#define AO_MAX_POINTS 12
 #endif
+#endif
+	
 
 uniform int ao_points < __UNIFORM_SLIDER_INT1
 	ui_category = "Tuning and Configuration";
@@ -535,24 +548,24 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 
 		float s[AO_MAX_POINTS]; // size must be compile time constant
 		
-		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.
-		const float pi = radians(180);
-		const float angle = pi/points;
+		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.		
+		const float angle = radians(180)/points;
 		
 		float max_depth = depth+0.01*ao_max_depth_diff;
 		float min_depth_sq = sqrt(depth)-0.01*ao_max_depth_diff;
 		
-		float3 bounce = 0;
+		uint i; //loop counter
 		
-		// Get circle of depth samples.		
+		// Get circle of depth samples.	
+		float2 the_vector;
 		[unroll]
-		for(uint i = 0; i<points; i++) {
+		for(i = 0; i<points; i++) {
 			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
 			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
 			// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.
 			const float2 outer_circle = (min(.002*points,.01)) * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
 			const float2 inner_circle =                   .004 * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
-			float2 the_vector = square ? inner_circle : outer_circle;
+			the_vector = square ? inner_circle : outer_circle;
 			
 			//Make area smaller for distant objects
 			the_vector *= (1-depth);
@@ -562,7 +575,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		}
 		
 		[unroll]
-		for(uint i = 0; i<points; i++) {
+		for(i = 0; i<points; i++) {
 			//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
 			s[i] = min( s[i], max_depth );			
 			
@@ -571,11 +584,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		
 		const float shape = FLT_EPSILON*ao_shape_modifier; 
 		
-		float total=0;
-	
 		//Now deal with points to close or to far to affect shade.
 		[unroll]
-		for(uint i = 0; i<points; i++) {
+		for(i = 0; i<points; i++) {
 			//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
 			if( sqrt(s[i]) < min_depth_sq ) {
 				float opposite = s[(i+points/2)%points];		;
@@ -590,7 +601,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		//Now estimate the local variation - sum of differences between adjacent points.
 		float diff = abs(s[0]-s[points-1]);
 		[unroll]
-		for(uint i = 0; i<points-1; i++) {			
+		for(i = 0; i<points-1; i++) {			
 			diff = diff + abs(s[i]-s[i+1]);
 		}
 		
@@ -600,10 +611,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		
 		variance += shape;
 		
-		//Now calculate how much of the circle is in front of or behind our centre point.
-		
+		float ao = 0;		
 		[unroll]
-		for(uint i = 0; i<points; i++) {
+		for(i = 0; i<points; i++) {
 			uint j = (i+1)%points;
 			// naive algorithm is to just add up all the sample points that cast shade. Instead we interpolate between adjacent points in the circle. Imagine the arc between two ajacent points - we're estimating the fraction of it that is in front of the centre point.
 			float near=min(s[i],s[j]); 
@@ -619,18 +629,18 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			//If depth is between near and far, crossing is between 0 and 1. If not, clamp it. Then adjust it to be between -1 and +1.
 			crossing = 2*clamp(crossing,0,1)-1;
 			
-			total += crossing;
+			ao += crossing;
 		}
 							
 		// now we know how much the point is occluded. 
-		float ao = total/points;
+		ao = ao/points;
+				
+		// It still needs some tweaks though...
 		
 		// For points 2 and 3 reduce strength (otherwise artefacts too obvious).
 		if(points==2) ao*=.5;
 		if(points==3) ao*=.75;
-		
-		// It still needs some tweaks though...
-		
+				
 		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
 		if (ao<0) ao*= ao_shine_strength;
 		else ao *= ao_strength;
@@ -639,44 +649,56 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		float fog_fix_multiplier = (1-depth/ao_fog_fix)	;	
 		ao = ao*fog_fix_multiplier;
 		
-		//apply AO		
-		if(bounce_lighting) {
+		//Coloured bounce lighting from nearby	
+		if(bounce_lighting) {					
+			float closest = 1;
+			the_vector=0;
 			
+			// Bounce is subtle effect, we don't want to double time taken by reading as many points again.
+			// Choose two vectors for the bounce, based on closest point. Where two walls meet in a corner this works well.
 			[unroll]
-			for(uint i = 0; i<points; i++) {
+			for(i = 0; i<points; i++) {
 				const float2 outer_circle = (min(.002*points,.01)) * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
 				const float2 inner_circle =                   .004 * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
-				float2 the_vector = square ? inner_circle : outer_circle;
-				the_vector *= (1-depth);
-				
-				float opposite = s[(i+points/2)%points];
-				if(points%2) opposite = (opposite + s[(1+i+points/2)%points] ) /2;
-				
-				if(s[i]+opposite+shape < 2*depth && sqrt(s[i]) > min_depth_sq) {
-					float3 the_sample = tex2D(samplerColor, texcoord+the_vector).rgb;
-					bounce += min(c,the_sample);
-				} else {
-					bounce += c;
+				if( s[i] < closest ) {						
+					closest = s[i];
+					the_vector = (square) ? inner_circle : outer_circle;					
 				}
-			
-			}			
-			bounce = bounce/points;
-				
-			if(debug_mode==2) {
-				c = 0.5*(1-ao);
-				c = lerp(c, length(c) * normalize(bounce), bounce_strength*max(0,ao));		
-			} else {
-				c = lerp(c, bounce, bounce_strength*fog_fix_multiplier);													
 			}
-			c = lerp(c, c*c, ao);
+			//Make area smaller for distant objects
+			the_vector *= (1-depth);
 			
-		}
-		else {
+			float3 bounce1 = tex2D(samplerColor, texcoord+the_vector).rgb;				
+			float3 bounce2 = tex2D(samplerColor, texcoord-the_vector).rgb;	
+			
+			//Imagine corner where white and red walls meet. If centre is white, one of the two points probably is too. We take the minimum so we make sure we pick up any strong colour, but it has to be darker than centre point.
+			float3 bounce = min(bounce1 , bounce2);
+											
+			//Estimate amount of white light hitting area based on max of our 3 points
+			float light = length(max(c,max(bounce1,bounce2)))+.01;
+						
+			// Estimate base unlit colour of c
+			float3 unlit_c = c/light;
+									
+			//We take our bounce light and multiply it by base unlit colour of c to get amount reflected from c.
+			bounce = bounce*unlit_c;
+			bounce = bounce*bounce_strength*clamp(ao,0,ao_strength/2);
+			
+			//debug Show ambient occlusion mode
+			if(debug_mode==2) c=0.5; 
+				
+			//apply AO		
+			c = c*(1-ao) + bounce;			
+		} 
+		else { 
+			//No bounce lighting
+			
 			//debug Show ambient occlusion mode
 			if(debug_mode==2) c=0.5;
-			c = lerp(c, c*c*.5, ao);
 			
-		}
+			//apply AO		
+			c = lerp(c, c*c*.5, ao);			
+		} 
 						
 		//Now clamp the pixel to avoid going conpletely black (or white with ao_shine).
 		if(!debug_mode) c = clamp( c, .25*original_c, .5*original_c +0.5 );
