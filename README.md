@@ -22,6 +22,8 @@ It combines 4 effects in one shader for speed. Each can be enabled or disabled.
 3 and 4 require depth buffer access.
 
 Tested in Toussaint :)
+
+![Screenshot](Fast_FXAA_sharpen_DOF_and_AO.jpg "Settings menu, Palace Gardens, Beauclair, The Witcher 3")
 	
 Setup
 -----
@@ -127,7 +129,7 @@ Tips
 Benchmark
 ---------
 - Game: Witcher 3 
-- Scene: [Beauclair looking at the water feature opposite the bank](https://github.com/rj200/Fast_FXAA_sharpen_DOF_and_AO_for_reshade/raw/main/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) )
+- Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
 
@@ -183,10 +185,11 @@ GPUs are so fast that memory is the performance bottleneck. While developing I f
 	
 FXAA starts with the centre pixel, plus 4 samples each half a pixel away diagonally; each of the 4 samples is the average of four pixels. Based on their shape it then samples two more points 3.5 pixels away horizontally or vertically. We look at the diamond created ◊ and look at the change along each side of the diamond. If the change is bigger on one pair of parallel edges and small on the other then we have an edge. The size of difference determines the score, and then we blend between the centre pixel and a smoothed using the score as the ratio. 
 
-The smooth option is the four nearby samples minus the current pixel. Effectively this is convolution:
-1 2 1
-2 0 2  / 12;
-1 2 1
+The smooth option is the four nearby samples minus the current pixel. Effectively this convolution matrix:
+
+	1 2 1
+	2 0 2  / 12;
+	1 2 1
 	
 Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each. It then uses the median of zero and the two sharp options. It also has a hard limit on maximum change in pixel value of 10%-40% (25% at default 0.5 strength). It darkens pixels more than it brightens them; this looks more realistic. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
 	
@@ -217,3 +220,4 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
 Version 1.0 - initial public release
+	
