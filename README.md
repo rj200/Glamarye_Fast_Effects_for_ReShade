@@ -1,31 +1,30 @@
-Fast_FXAA_sharpen_DOF_and_AO (version 1.0)
+Fast_FXAA_sharpen_DOF_and_AO (version 1.1)
 ======================================
+
+**New in 1.1:** better sharpening.
 
 Author: Robert Jessop
 
 License: MIT
 	
-Copyright 2021 Robert Jessop
-
 About
 -----
 	
-Designed for speed, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms.
+Designed for speed and quality, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms.
 	
-It combines 4 effects in one shader for speed. Each can be enabled or disabled.
+It combines several effects in one shader for speed. Each can be enabled or disabled.
 	
 1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed quite so smoothly.
 2. Intelligent Sharpening. Improves clarity of texture details.
-3. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
-4. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. It has an optional "bounce lighting" mode, which blends in the reflected colour from a nearby surface. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.
+3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. It has an optional "bounce lighting" mode, which blends in the reflected colour from a nearby surface. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.
+4. Bounce lighting. A very fast indirect lighting implementation that gives surfaces some coloured light reflected from nearby. It makes colours and shade much more realistic than Ambient Occlusion alone.
+5. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
 	
-3 and 4 require depth buffer access.
+3, 4 & 5 require depth buffer access.
 
 Tested in Toussaint :)
 
-![Screenshot](Comparison%20Screenshots%20Witcher%203/My%20Method%20default.png "Default Settings, Beauclair, The Witcher 3")
-
-![Screenshot](Fast_FXAA_sharpen_DOF_and_AO.jpg "Settings menu, Max strength, Palace Gardens, Beauclair, The Witcher 3")
+![Screenshot](Fast_FXAA_sharpen_DOF_and_AO.jpg "Settings menu, Palace Gardens, Beauclair, The Witcher 3")
 	
 Setup
 -----
@@ -71,14 +70,14 @@ Effects Intensity
 
 **Bounce strength** - Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? 
 
-**AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. 
+**AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
 Quality
 -------
 
-**AO quality** - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. TIP: Hit reload button after changing this (performance bug workaround).
+**AO quality** - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. Maximum 12, but in DirectX 9 you need to set AO_POINTS global preprocessor definition instead of this slider to go that high. Tip: Hit reload button after changing this (performance bug workaround.)
 
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
@@ -97,7 +96,7 @@ Output mode
 **Debug: show depth and edges** - Shows depth buffer and highlights edges - it helps you check if depth buffer is correctly aligned with the image. Some games (e.g. Journey) do weird things that mean it's offset and tweaking ReShade's depth buffer settings might be required. It's as if you can see the Matrix.
 
 
-Tuning and Configuration
+Advanced Tuning and Configuration
 ------------------------
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
@@ -105,10 +104,6 @@ Tuning and Configuration
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
 **AO max depth diff** - Ambient occlusion biggest depth difference to allow, as percent of depth. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
-	
-**Fast FXAA threshold** - Shouldn't need to change this. Smoothing starts when the step shape is stronger than this. Too high and some steps will be visible. Too low and subtle textures will lose detail.
-	
-**Sharpen lighten ratio** - Sharpening looks most realistic if highlights are weaker than shade. The change in colour is multiplied by this if it's getting brighter.
 
 
 Tips
@@ -134,6 +129,7 @@ Benchmark
 - Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
+- Shader version: 1.0
 
 **Baseline**
 
@@ -193,9 +189,9 @@ The smooth option is the four nearby samples minus the current pixel. Effectivel
 	2 0 2  / 12;
 	1 2 1
 	
-Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each. It then uses the median of zero and the two sharp options. It also has a hard limit on maximum change in pixel value of 10%-40% (25% at default 0.5 strength). It darkens pixels more than it brightens them; this looks more realistic. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
+Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each - if both are positive or both negative then if adds them together and sharpens the texture; if the signs don't match then we have an edge and it doesn't sharpen. It darkens pixels more than it brightens them; this looks more realistic - the amount of brightening is automatically adjusted based on the light, so in dark areas pixels can become lighter, but it bright areas they cannot. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
 	
-Depth of field is subtle; this implementation isn't a fancy cinematic focus effect. Good to enable if using strong sharpening, as it takes the edge of the background and helps emphasise the foreground. If DOF blur is set to zero, then it just reduces the strength of sharpening, so sharpening gradually disappears in the distance. If DOF blur is higher, it also blurs pixels, increasing blur with distance - at 1 pixels at maximum depth as set to the smooth value. The total change in each pixel is limited to 50% to reduce problems at near-to-far edges when blur is high.
+Depth of field is subtle; this implementation isn't a fancy cinematic focus effect. Good to enable if using sharpening, as it takes the edge of the background and helps emphasise the foreground. If DOF blur is set to zero, then it just reduces the strength of sharpening, so sharpening gradually disappears in the distance. If DOF blur is higher, it also blurs pixels, increasing blur with distance - at 1 pixels at maximum depth as set to the smooth value. The total change in each pixel is limited to 50% to reduce problems at near-to-far edges when blur is high.
 		
 Ambient occlusion adds shade to concave areas of the scene. It's a screen space approximation of the amount of ambient light reaching every pixel. It uses the depth buffer generated by the rasterisation process. Without ambient occlusion everything looks flat. However, ambient occlusion should be subtle and not be overdone. Have a look around in the real world - the bright white objects with deep shading you see in research papers just aren't realistic. If you're seeing black shade on bright objects, or if you can't see details in dark scenes then it's too much. However, exagerating it just a little bit compared to the real-world is good - it's another depth clue for your brain and makes the flat image on the flat screen look more 3D.  
 	
@@ -221,5 +217,6 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
-Version 1.0 - initial public release
-	
+1.0 - Initial public release
+
+1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings.
