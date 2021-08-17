@@ -1,12 +1,4 @@
-Fast_FXAA_sharpen_DOF_and_AO (version 1.1)
-======================================
 
-**New in 1.1:** better sharpening.
-
-Author: Robert Jessop
-
-License: MIT
-	
 About
 -----
 	
@@ -44,6 +36,7 @@ Setup
 			- If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.	
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
+	- If you want faster, reduce value of FAST_AO_POINTS preprocessor definition. Default is 8 but 2-12 are all valid options.
 		
 Enabled/disable effects
 -----------------------
@@ -77,10 +70,7 @@ Effects Intensity
 Quality
 -------
 
-**AO quality** - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. Maximum 12, but in DirectX 9 you need to set AO_POINTS global preprocessor definition instead of this slider to go that high. Tip: Hit reload button after changing this (performance bug workaround.)
-
-**AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
-
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of sample points. The is your speed vs quality knob; higher is better but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. If you break it by setting an invalid value you may need to go into the game's directory and edit the value in ReShadePreset.ini to fix it.
 
 Output mode
 -----------
@@ -98,6 +88,8 @@ Output mode
 
 Advanced Tuning and Configuration
 ------------------------
+
+**AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 		
@@ -219,4 +211,4 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 1.0 - Initial public release
 
-1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings.
+1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
