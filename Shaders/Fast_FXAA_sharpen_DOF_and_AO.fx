@@ -26,7 +26,7 @@ About
 	
 Designed for speed and quality, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms.
 	
-It combines 4 effects in one shader for speed. Each can be enabled or disabled.
+It combines several effects in one shader for speed. Each can be enabled or disabled.
 	
 1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed quite so smoothly.
 2. Intelligent Sharpening. Improves clarity of texture details.
@@ -58,6 +58,7 @@ Setup
 			- If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.	
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
+	- If you want faster, reduce value of FAST_AO_POINTS preprocessor definition. Default is 8 but 2-12 are all valid options.
 		
 Enabled/disable effects
 -----------------------
@@ -91,10 +92,7 @@ Effects Intensity
 Quality
 -------
 
-**AO quality** - Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. Maximum 12, but in DirectX 9 you need to set AO_POINTS global preprocessor definition instead of this slider to go that high. Tip: Hit reload button after changing this (performance bug workaround.)
-
-**AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
-
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of sample points. The is your speed vs quality knob; higher is better but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. If you break it by setting an invalid value you may need to go into the game's directory and edit the value in ReShadePreset.ini to fix it.
 
 Output mode
 -----------
@@ -112,6 +110,8 @@ Output mode
 
 Advanced Tuning and Configuration
 ------------------------
+
+**AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 		
@@ -232,7 +232,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
 1.0 - Initial public release
-1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings.
+
+1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
 	
 */
 
@@ -243,6 +244,15 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 #include "ReShade.fxh"
 #include "ReShadeUI.fxh"
+
+
+// This is your quality/speed trade-off. Miniumum 2, maximum 12 (you can go higher but it's not worth it - and above 20 it might break.). Feel free to go down to 3, or even 2 for some basic shading with minimal cost (but maybe not at max AO strength!)
+#ifndef FAST_AO_POINTS
+	#define FAST_AO_POINTS 8
+#endif
+
+//This was a GUI slider, but it caused problems with DirectX 9 games failing to compile it. Have to use pre-processor.
+
 
 uniform bool fxaa_enabled <
     ui_category = "Enabled Effects";
@@ -262,7 +272,7 @@ uniform bool sharp_enabled <
 uniform bool ao_enabled <
     ui_category = "Enabled Effects";
     ui_label = "Fast Ambient Occlusion (AO) (requires depth buffer)";
-    ui_tooltip = "Ambient occlusion shades pixels that are surrounded by pixels closer to the camera - concave shapes. It's a simple approximation of the of ambient light reaching each area (i.e. light just bouncing around the world, not direct light.) ";
+    ui_tooltip = "Ambient occlusion shades pixels that are surrounded by pixels closer to the camera - concave shapes. It's a simple approximation of the of ambient light reaching each area (i.e. light just bouncing around the world, not direct light.)\n\nFor quality adjustment, set preprocessor definition FAST_AO_POINTS. Higher is better quality but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points.";
     ui_type = "radio";
 > = true;
 
@@ -270,7 +280,7 @@ uniform bool ao_enabled <
 uniform bool bounce_lighting <
     ui_category = "Enabled Effects";
     ui_label = "Bounce Lighting (requires AO)";
-    ui_tooltip = "Approximates local ambient light colour. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use two samples of colour data as well as depth. Fast Ambient Occlusion must be enabled too.";
+    ui_tooltip = "Approximates local ambient light colour. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use two samples of colour data as well as depth.\n\nFast Ambient Occlusion must be enabled too.";
     ui_type = "radio";
 > = true;
 
@@ -285,7 +295,7 @@ uniform bool dof_enabled <
 uniform bool depth_detect <
     ui_category = "Enabled Effects";
     ui_label = "Detect menus & videos (requires depth buffer)";
-    ui_tooltip = "Skip all processing if depth value is 0 or 1 (per pixel). Full-screen videos and 2D menus probably do not need anti-aliasing nor sharpenning, and may lose worse with them. Only enable if depth buffer always available in gameplay!";
+    ui_tooltip = "Skip all processing if depth value is 0 or 1 (per pixel). Full-screen videos and 2D menus probably do not need anti-aliasing nor sharpenning, and may lose worse with them.\n\nOnly enable if depth buffer always available in gameplay!";
     ui_type = "radio";
 > = false;
 
@@ -302,7 +312,7 @@ uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
 uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
-	ui_tooltip = "Ambient Occlusion. Higher mean deeper shade in concave areas.";
+	ui_tooltip = "Ambient Occlusion. Higher mean deeper shade in concave areas.\n\nFor quality adjustment, set preprocessor definition FAST_AO_POINTS. Higher is better quality but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. ";
 	ui_label = "AO strength";
 > = 0.6;
 
@@ -328,45 +338,6 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 > = 0.3;
 
 
-//Diminishing returns after 9 points. More would need a more sophisticated sampling pattern.
-
-// Define AO_POINTS to override GUI, and allow more than 8 points in DirectX 9.
-#ifdef AO_POINTS
-	#define AO_MAX_POINTS AO_POINTS
-	#define ao_points AO_POINTS
-	
-	uniform int ao_points_dummy <
-    ui_category = "Quality";
-	ui_type = "radio";
-    ui_label = "Output mode";
-    ui_items = "AO Quality is set by AO_POINTS global preprocessor definition. Remove AO_POINTS from global preprocessor definition for interactive slider.\0";
-	ui_tooltip = "Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. Remove AO_POINTS from global preprocessor definition for interactive slider.";
-	> = 0;
-#else
-	#ifndef AO_MAX_POINTS
-		//directX 9 has issues with too many registers if AO_MAX_POINTS set too high.
-		#if (__RENDERER__ <= 0xa000)
-			#define AO_MAX_POINTS 7
-		#else
-			#define AO_MAX_POINTS 12
-	#endif
-	#endif
-
-	uniform int ao_points < __UNIFORM_SLIDER_INT1
-		ui_category = "Quality";
-		ui_min = 2; ui_max = AO_MAX_POINTS; ui_step = 1;
-		ui_tooltip = "Ambient Occlusion. Number of sample points. The is your speed vs quality knob; higher is better but slower. Maximum 12, but in DirectX 9 you need to set AO_POINTS global preprocessor definition instead of this slider to go that high. Tip: Hit reload button after changing this (performance bug workaround.)";
-		ui_label = "AO quality";
-	> = 6;
-#endif	
-
-uniform float ao_fog_fix < __UNIFORM_SLIDER_FLOAT1
-    ui_category = "Quality";
-	ui_min = 0.0; ui_max = 2; ui_step = .05;
-    ui_label = "AO max distance";
-    ui_tooltip = "The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.";
-> = .5;
-
 uniform int debug_mode <
     ui_category = "Output mode";
 	ui_type = "radio";
@@ -378,6 +349,15 @@ uniform int debug_mode <
 			   "Debug: show depth and edges\0";
 	ui_tooltip = "Handy when tuning ambient occlusion settings.";
 > = 0;
+
+
+
+uniform float ao_fog_fix < __UNIFORM_SLIDER_FLOAT1
+    ui_category = "Advanced Tuning and Configuration";
+	ui_min = 0.0; ui_max = 2; ui_step = .05;
+    ui_label = "AO max distance";
+    ui_tooltip = "The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.";
+> = .5;
 
 uniform float ao_radius < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Tuning and Configuration";
@@ -608,9 +588,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		uint square =  (uint(vpos.x+vpos.y)) % 2;
 		
 		//our sample points. 
-		const uint points=ao_points;
+		const uint points=FAST_AO_POINTS;
 
-		float s[AO_MAX_POINTS]; // size must be compile time constant
+		float s[FAST_AO_POINTS]; // size must be compile time constant
 		
 		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.		
 		const float angle = radians(180)/points;
@@ -642,8 +622,6 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		for(i = 0; i<points; i++) {
 			//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
 			s[i] = min( s[i], max_depth );			
-			
-			
 		}
 		
 		const float shape = FLT_EPSILON*ao_shape_modifier; 
