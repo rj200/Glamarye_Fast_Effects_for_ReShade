@@ -16,7 +16,8 @@ It combines several effects in one shader for speed. Each can be enabled or disa
 
 Tested in Toussaint :)
 
-![Screenshot](Fast_FXAA_sharpen_DOF_and_AO.jpg "Settings menu, Palace Gardens, Beauclair, The Witcher 3")
+
+![Screenshot](Fast_FXAA_sharpen_DOF_and_AO%20v1.1%20default%20settings%20Witcher%203%204k.jpg "Default settings. Beauclair, The Witcher 3")
 	
 Setup
 -----
