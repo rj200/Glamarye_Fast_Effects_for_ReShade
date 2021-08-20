@@ -28,6 +28,9 @@ No postprocessing:
 This shader, default settings:
 ![Screenshot](default_settings.png "Beauclair, The Witcher 3")
 
+This shader, Maximum strength:
+![Screenshot](max_strength.png "Beauclair, The Witcher 3")
+
 Setup
 -----
 	
