@@ -18,7 +18,16 @@ Tested in Toussaint :)
 
 
 ![Screenshot](Fast_FXAA_sharpen_DOF_and_AO%20v1.1%20default%20settings%20Witcher%203%204k.jpg "Default settings. Beauclair, The Witcher 3")
-	
+
+Comparison
+----------
+
+No postprocessing:
+![Screenshot](no_postprocessing.png "Beauclair, The Witcher 3")
+
+This shader, default settings:
+![Screenshot](default_settings.png "Beauclair, The Witcher 3")
+
 Setup
 -----
 	
@@ -119,7 +128,7 @@ Tips
 Benchmark
 ---------
 - Game: Witcher 3 
-- Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
+- Scene: [Beauclair looking at the water feature opposite the bank](/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
 - Shader version: 1.0
