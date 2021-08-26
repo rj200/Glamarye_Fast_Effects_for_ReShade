@@ -1,4 +1,14 @@
 
+Fast_FXAA_sharpen_DOF_and_AO (version 1.2)
+======================================
+
+**New in 1.2:** Better Ambient Occlusion quality - smoother shade increase close to occluding surfaces. Tweaked defaults - slightly faster default.
+
+Author: Robert Jessop
+
+License: MIT
+
+
 About
 -----
 	
@@ -16,10 +26,9 @@ It combines several effects in one shader for speed. Each can be enabled or disa
 
 Tested in Toussaint :)
 
+![Screenshot](Fast_FXAA_sharpen_DOF_and_AO.jpg "Settings menu, Palace Gardens, Beauclair, The Witcher 3")
 
-![Screenshot](Fast_FXAA_sharpen_DOF_and_AO%20v1.1%20default%20settings%20Witcher%203%204k.jpg "Default settings. Beauclair, The Witcher 3")
-
-Comparison
+Comparison (version 1.1)
 ----------
 
 No postprocessing:
@@ -30,7 +39,7 @@ This shader, default settings:
 
 This shader, Maximum strength:
 ![Screenshot](max_strength.png "Beauclair, The Witcher 3")
-
+	
 Setup
 -----
 	
@@ -39,7 +48,7 @@ Setup
 3. Run the game
 4. Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options (if it has them).
 	- Some games do not have individual options, but have a single "post-processing" setting. Setting that to the lowest value will probably disable them all.
-5. Call up ReShade's interface in game and enable Fast_FXAA_sharpen_DOF_and_AO
+5. Call up ReShade's interface in game and enable Fast_FXAA_sharpen_DOF_and_AO ("Home" key by default)
 6. Check if depth buffer is working and set up correctly. If not, disable the Depth of field and Ambient Occlusion effects for a small performance improvement. 
 	- Check ReShade's supported games list to see any notes about depth buffer first. 
 	- Check in-game (playing, not in a menu or video cutscene):
@@ -47,9 +56,10 @@ Setup
 	- Close objects should be black and distant ones white. It should align with shapes in the image.
 		* If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
 			- If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.	
+	- If it depth buffer work in all areas of gameplay, then you probably want to enable "Detect menus & videos" too.
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
-	- If you want faster, reduce value of FAST_AO_POINTS preprocessor definition. Default is 8 but 2-12 are all valid options.
+	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 6 but 2-12 are all good options.
 		
 Enabled/disable effects
 -----------------------
@@ -121,8 +131,7 @@ Tips
 - If you don't like an effect then reduce it or turn it off. Disabling effects improves performance, except sharpening, which is basically free if FXAA or depth of field is on.	
 - If the game uses lots of semi-transparent effects like smoke or fog, and you get incorrect shadows/silluettes then you may need to tweak AO max distance. Alternatively, you could use the game's own slower SSAO option if it has one. This is a limitation of ReShade and similar tools, ambient occlusion should be drawn before transparent objects, but ReShade can only work with the output of the game and apply it afterwards.
 - You can mix and match with in-game options or other ReShade shaders, though you lose some the performance benefits of a combined shader.
-- The maximum AO Quality is 12 normally, but it is limited to 8 in DirectX 9 games (due to a shader complexity limit in DirectX 9). Workaround: you can set a higher number by adding AO_POINTS to ReShade's global preprocessor definitions - this helps DirectX compile smaller code that doesn't have to support multiple quality levels.
-	* One could set AO_POINTS higher than 12 but it's not worth it - the algorithm is designed for few points and won't use the extra points wisely.
+- Don't set FAST_AO_POINTS higher than 12 - the algorithm is designed for few points and won't use the extra points wisely.
 - Experiment!
 	* How much sharpen and depth of field is really a matter of personal taste. 
 	* Don't be afraid to try lower AO quality levels if you want maximum performance. Even a little bit of AO can make the image look less flat.
@@ -131,7 +140,7 @@ Tips
 Benchmark
 ---------
 - Game: Witcher 3 
-- Scene: [Beauclair looking at the water feature opposite the bank](/Benchmark%20Location.png) 
+- Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
 - Shader version: 1.0
@@ -222,6 +231,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
-1.0 - Initial public release
+1.2 - Better AO. Smoother shading transition at the inner circle of depth sample points - less artefacts at high strength. Tweaked defaults - The shading improvements enabled me go back to default FAST_AO_POINTS=6 for better performance. Allow slightly deeper shade at max.
 
 1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
+
+1.0 - Initial public release
