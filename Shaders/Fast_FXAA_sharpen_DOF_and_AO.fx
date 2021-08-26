@@ -7,7 +7,7 @@ Fast_FXAA_sharpen_DOF_and_AO (version 1.2)
 
 **New in 1.2:** Better Ambient Occlusion quality - smoother shade increase close to occluding surfaces. Tweaked defaults - slightly faster default.
 
-Author: Robert Jessop
+Author: Robert Jessop 
 
 License: MIT
 	
@@ -243,11 +243,15 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+1.2.1 - Bugfix: didn't compile in OpenGL games.
+
 1.2 - Better AO. Smoother shading transition at the inner circle of depth sample points - less artefacts at high strength. Tweaked defaults - The shading improvements enabled me go back to default FAST_AO_POINTS=6 for better performance. Allow slightly deeper shade at max.
 
 1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
 
 1.0 - Initial public release
+
+Thank you macron, AlucardDH on ReShade forum for bug reports.
 	
 */
 
@@ -494,7 +498,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 	const bool run_fxaa = fxaa_enabled || debug_mode==1 || debug_mode==4;
 	
 	float ratio=0;
-	float3 smooth =0;
+	float3 smoothed =0;
 	
   //skip all processing if in menu or video
   if(!depth_detect || ( depth!=0 && depth != 1) ) { 
@@ -508,7 +512,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		float3 nw = tex2D(samplerColor, texcoord + BUFFER_PIXEL_SIZE*float2(-.5,.5)).rgb;
 		
 		// Average of surrounding pixels, both smoothing edges (FXAA) 
-		smooth = ((ne+nw)+(se+sw)-c)/3;	
+		smoothed = ((ne+nw)+(se+sw)-c)/3;	
 		
 		//Do we have horizontal or vertical line?
 		float dy = dot(luma,abs((ne+nw)-(se+sw)));
@@ -545,13 +549,13 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			// We compare the biggest diff to the total. The bigger the difference the stronger the step shape.
 			// Add step_detect_threshold of 0.05. To avoid blurring where not needed and to avoid divide by zero. We're in linear colour space, but monitors and human vision isn't. Darker pixels need smaller threshold than light ones, so we adjust the threshold.
 				
-			float3 total_diff = (d1+d2) + 0.05 *sqrt(smooth);					
+			float3 total_diff = (d1+d2) + 0.05 *sqrt(smoothed);					
 			float3 max_diff = max(d1,d2);
 				
 			//score between 0 and 1
 			float score = dot(luma,(max_diff/total_diff));			
 								
-			//ratio of sharp to smooth
+			//ratio of sharp to smoothed
 			//If score > 0.5 then smooth. Anything less goes to zero,
 			ratio = max( 2*score-1, 0);				
 		}
@@ -583,15 +587,15 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		}
 		
 		// Debug mode: make the smoothed option more highlighted in green.		
-		if(debug_mode==1) { c.r=c.g; c.b=c.g; smooth=lerp(c,float3(0,1,0),ratio);  } 
-		if(debug_mode==4) { c=depth; smooth=lerp(c,float3(0,1,0),ratio);  } 
+		if(debug_mode==1) { c.r=c.g; c.b=c.g; smoothed=lerp(c,float3(0,1,0),ratio);  } 
+		if(debug_mode==4) { c=depth; smoothed=lerp(c,float3(0,1,0),ratio);  } 
 		
 		//Now apply FXAA after sharpening		
-		c = lerp(c, smooth, ratio);	
+		c = lerp(c, smoothed, ratio);	
 				
 		//Now apply DOF blur, based on depth. Limit the change % to minimize artefacts on near/far edges.
 		if(dof_enabled) { 			
-			c=lerp(c, clamp(smooth,c*.66,c*1.5), dof_strength*depth);			
+			c=lerp(c, clamp(smoothed,c*.66,c*1.5), dof_strength*depth);			
 		}	
 		
 	}
@@ -682,7 +686,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			float near=min(s[i],s[j]); 
 			float far=max(s[i],s[j]); 
 			
-			//This is the magic that makes shaded areas smooth instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
+			//This is the magic that makes shaded areas smoothed instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
 			near -= variance;
 			far  += variance;
 			
