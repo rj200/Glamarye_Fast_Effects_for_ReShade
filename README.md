@@ -231,6 +231,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+1.2.1 - Bugfix: didn't compile in OpenGL games.
+
 1.2 - Better AO. Smoother shading transition at the inner circle of depth sample points - less artefacts at high strength. Tweaked defaults - The shading improvements enabled me go back to default FAST_AO_POINTS=6 for better performance. Allow slightly deeper shade at max.
 
 1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
