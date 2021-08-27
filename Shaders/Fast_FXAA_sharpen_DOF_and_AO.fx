@@ -2,7 +2,7 @@
 | :: Description :: |
 '-------------------/
 
-Fast_FXAA_sharpen_DOF_and_AO (version 1.2)
+Fast_FXAA_sharpen_DOF_and_AO (version 1.2.2)
 ======================================
 
 **New in 1.2:** Better Ambient Occlusion quality - smoother shade increase close to occluding surfaces. Tweaked defaults - slightly faster default.
@@ -242,6 +242,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+1.2.2 - Regression fix: shade when not using bounce. Actually tweaked this whole section so it works like bounce lighting but using the current pixel instead of reading nearby ones, and simplified the code in places too. bounce_lighting performance improvement!
 
 1.2.1 - Bugfix: didn't compile in OpenGL games.
 
@@ -529,7 +531,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		//Calculate FXAA before sharpening
 		if(run_fxaa) {	
 			//Get two more pixels further away on the possible line.
-			float dist = 3.5;
+			const float dist = 3.5;
 			float2 wwpos = horiz ? float2(-dist, 0) : float2(0, +dist) ;
 			float2 eepos = horiz ? float2(+dist, 0) : float2(0, -dist) ;
 						
@@ -702,23 +704,17 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		// now we know how much the point is occluded. 
 		ao = ao/points;
 		
-		// For points 2 and 3 reduce strength (otherwise artefacts too obvious).
-		if(points==2) ao*=.5;
-		if(points==3) ao*=.75;
-		
 		//Because of our checkerboard pattern it can be too dark in the inner_circle and create a noticable step. This softens the inner circle (which will be darker anyway because outer_circle is probably dark too.)
-		if(square) ao*=sqrt(.5);
-		
-		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
-		if (ao<0) { ao*= ao_shine_strength; }
-		else ao *= ao_strength;
+		if(square || points==2) ao*=(2.0/3.0);
 		
 		//Weaken the AO effect depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.	
 		float fog_fix_multiplier = min(1, (1-depth/ao_fog_fix)*2 );	
 		ao = ao*fog_fix_multiplier;
 		
-		//Coloured bounce lighting from nearby	
-		float3 bounce=0;
+		//If bounce lighting isn't enabled we actually pretend it is using c*smoothed to get better colour in bright areas (otherwise shade can be too deep or too grey.)
+		float3 bounce=smoothed*c*ao_strength;
+		
+		//Coloured bounce lighting from nearby
 		if(bounce_lighting) {					
 			float closest = 1;			
 			the_vector=0;
@@ -759,28 +755,26 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 									
 			//We take our bounce light and multiply it by base unlit colour of c to get amount reflected from c.
 			
-			bounce = bounce*unlit_c;
-			
-			bounce = bounce*bounce_strength*2*clamp(ao/ao_strength,0,.5);
-			
-			//Need to make ambient occlusion stronger to compensate for fact that we're adding light.
-			if(ao>0) ao=ao*1.33;
-			
+			bounce = bounce*unlit_c*bounce_strength*2;
 		}
+		
+		bounce = bounce*clamp(ao,0,.5);
+		
+		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
+		if (ao<0) ao*=ao_shine_strength;
+		else ao *= ao_strength*1.4; // multiply by 1.4 to compensate for the bounce value we're adding
+				
 		//debug Show ambient occlusion mode
-		if(debug_mode==2) c=0.5;
-			
-		//apply AO		
-		c=c*(1-ao) + bounce;	
-		 
-								
-		//Now clamp the pixel to avoid going completely black or white.
-		if(!debug_mode) c = clamp( c, 0.2*original_c, .5*original_c +0.5  );
+		if(debug_mode==2) c=.5;
+				
+		//apply AO and clamp the pixel to avoid going completely black or white.
+		c = clamp( c*(1-ao) + bounce	, 0.2*c, .5*c +0.5  );
 	}	
 	
 	//Show depth buffer mode
 	if(debug_mode == 3) c = depth ; 	
   }		
+
   return c;
 }
 
