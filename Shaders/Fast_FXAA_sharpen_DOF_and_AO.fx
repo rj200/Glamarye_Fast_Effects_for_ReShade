@@ -738,6 +738,9 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 			//Make area smaller for distant objects
 			the_vector *= (1-depth);
 			
+			//This has a surprising performance boost, It's because an offset of 0 is faster as current pixel is already cached.
+			//This is faster than putting this check around the whole section (due to parallel execution, some pixels in the block always go down this path therefore all must.)
+			if(ao<=0) the_vector=0;
 			
 			float3 bounce1 = tex2D(samplerColor, texcoord+the_vector).rgb;				
 			float3 bounce2 = tex2D(samplerColor, texcoord-the_vector).rgb;	
