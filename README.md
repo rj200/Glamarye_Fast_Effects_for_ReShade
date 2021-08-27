@@ -1,13 +1,14 @@
 
-Fast_FXAA_sharpen_DOF_and_AO (version 1.2)
+Fast_FXAA_sharpen_DOF_and_AO (version 1.2.3)
 ======================================
 
 **New in 1.2:** Better Ambient Occlusion quality - smoother shade increase close to occluding surfaces. Tweaked defaults - slightly faster default.
 
-Author: Robert Jessop
+Author: Robert Jessop 
 
 License: MIT
-
+	
+Copyright 2021 Robert Jessop
 
 About
 -----
@@ -231,10 +232,16 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
-1.2.1 - Bugfix: didn't compile in OpenGL games.
+1.2.3 (x) Regression fix: AO shade colour when not using bounce. Actually tweaked this whole section so it works like bounce lighting but using the current pixel instead of reading nearby ones, and simplified the code in places too. 
 
-1.2 - Better AO. Smoother shading transition at the inner circle of depth sample points - less artefacts at high strength. Tweaked defaults - The shading improvements enabled me go back to default FAST_AO_POINTS=6 for better performance. Allow slightly deeper shade at max.
+1.2.2 (+) bounce_lighting performance improvement!
 
-1.1 - Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
+1.2.1 (x) Bugfix: didn't compile in OpenGL games.
 
-1.0 - Initial public release
+1.2 (+) Better AO. Smoother shading transition at the inner circle of depth sample points - less artefacts at high strength. Tweaked defaults - The shading improvements enabled me go back to default FAST_AO_POINTS=6 for better performance. Allow slightly deeper shade at max.
+
+1.1 (+) Improved sharpening. Tweaked bounce lightling strength. Tweaked defaults. Simplified settings. Quality is now only set in pre-processor - to avoid problems.
+
+1.0 (-) Initial public release
+
+Thank you macron & AlucardDH on ReShade forum for bug reports.
