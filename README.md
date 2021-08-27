@@ -27,19 +27,18 @@ It combines several effects in one shader for speed. Each can be enabled or disa
 
 Tested in Toussaint :)
 
-![Screenshot](Fast_FXAA_sharpen_DOF_and_AO.jpg "Settings menu, Palace Gardens, Beauclair, The Witcher 3")
+![Screenshot](Fast_FXAA_sharpen_DOF_and_AO%20v1.2.3%20UI.jpg "Settings menu, Beauclair, The Witcher 3")
 
-Comparison (version 1.1)
+Note: Default settings are a little more subtle than this - high strength settings are used here to make the effects more clear. Any minor imperfections would be not be visible if you use the default strengths, or if you increase FAST_AO_POINTS.
+
+Comparison (version 1.2.3)
 ----------
 
-No postprocessing:
-![Screenshot](no_postprocessing.png "Beauclair, The Witcher 3")
+Tip: Ctrl+click the links to open each image in a new tab.
 
-This shader, default settings:
-![Screenshot](default_settings.png "Beauclair, The Witcher 3")
+[This shader, AO Shine 0.5, everything else maximum strength](https://raw.githubusercontent.com/rj200/Fast_FXAA_sharpen_DOF_and_AO_for_reshade/main/Fast_FXAA_sharpen_DOF_and_AO%20v1.2.3%20UI.jpg) 
 
-This shader, Maximum strength:
-![Screenshot](max_strength.png "Beauclair, The Witcher 3")
+[No postprocessing](https://raw.githubusercontent.com/rj200/Fast_FXAA_sharpen_DOF_and_AO_for_reshade/main/Fast_FXAA_sharpen_DOF_and_AO%20nopostprocessing%20for%20comparison.jpg)
 	
 Setup
 -----
