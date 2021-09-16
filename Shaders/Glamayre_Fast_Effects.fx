@@ -2,10 +2,12 @@
 | :: Description :: |
 '-------------------/
 
-Fast_postprocessing (version 2.0 beta)
+Glamarye Fast Effects for ReShade (version 2.0)
 ======================================
 
-**New in 2.0:** Global Illumination... well, a fast 2D rough approximation of it! Renamed because listing everything in the name was too long!
+(Previously know as Fast_FXAA_sharpen_DOF_and_AO)
+
+**New in 2.0:** Global Illumination... well, a fast 2D rough approximation of it! Renamed.
 
 Author: Robert Jessop 
 
@@ -24,11 +26,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 About
 -----
 	
-Designed for speed and quality, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms. Global Illumination more than ten times as fast, but it's not really the same - it's a fake 2D rough approximation of real 3D global illumination.
+Designed for speed and quality, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms. Global Illumination is many times faster than other GI shaders, but it's not really the same - it's a fake 2D rough approximation (though it works surprising well!)
 	
-It combines several effects in one shader for speed. Each can be enabled or disabled.
+Glamarye Fast Effects combines several fast versions of common postprocessing enhancements in one shader for speed. Each can be enabled or disabled separately.
 	
-1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed quite so smoothly.
+1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed so smoothly.
 2. Intelligent Sharpening. Improves clarity of texture details.
 3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.
 4. Bounce lighting. A very fast short-range indirect lighting implementation that gives surfaces some coloured light reflected from nearby. It makes colours and shade much more realistic than Ambient Occlusion alone.
@@ -43,24 +45,29 @@ Tested in Toussaint :)
 
 Note: This is with maximum strength settings to make effects more clear. Default settings are more subtle than this.
 
+Glamarye?
+----------
+
+In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
+
 Comparison (version 2.0)
 ----------
 
 Tip: Ctrl+click the links to open each image in a new tab.
 
-[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Fast_FXAA_sharpen_DOF_and_AO_for_reshade/main/v2.0%20original%20for%20comparison.jpg) 
+[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg) 
 
-[No postprocessing](https://raw.githubusercontent.com/rj200/Fast_FXAA_sharpen_DOF_and_AO_for_reshade/main/v2.0%20original%20for%20comparison.jpg)
+[No postprocessing](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg)
 	
 Setup
 -----
 	
 1. Install ReShade and configure it for your game (See https://reshade.me)
-2. Copy Fast_FXAA_sharpen_DOF_and_AO.fx to ReShade's Shaders folder within the game's folder (e.g. C:\Program Files (x86)\Steam\steamapps\common\The Witcher 3\bin\x64\reshade-shaders\Shaders)
+2. Copy Glamarye_Fast_Effects.fx to ReShade's Shaders folder within the game's folder (e.g. C:\Program Files (x86)\Steam\steamapps\common\The Witcher 3\bin\x64\reshade-shaders\Shaders)
 3. Run the game
 4. Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options (if it has them).
 	- Some games do not have individual options, but have a single "post-processing" setting. Setting that to the lowest value will probably disable them all.
-5. Call up ReShade's interface in game and enable Fast_FXAA_sharpen_DOF_and_AO ("Home" key by default)
+5. Call up ReShade's interface in game and enable Glamarye_Fast_Effects ("Home" key by default)
 6. Check if depth buffer is working and set up correctly. If not, disable the Depth of field and Ambient Occlusion effects for a small performance improvement. 
 	- Check ReShade's supported games list to see any notes about depth buffer first. 
 	- Check in-game (playing, not in a menu or video cutscene):
@@ -71,7 +78,7 @@ Setup
 	- If it depth buffer work in all areas of gameplay, then you probably want to enable "Detect menus & videos" too.
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
-	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 6 but 2-12 are all good options.
+	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 8 but 2-12 are all good options.
 		
 Enabled/disable effects
 -----------------------
@@ -103,7 +110,9 @@ Effects Intensity
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
-**GI strength** - Multiplier for Fake Global Illumination
+**GI brightness** - Fake Global Illumination. Brightness change strength. Too high can make some areas of high contrast scenes too dark. 
+
+**GI colour** - Fake Global Illumination. Colour change strength. High values can make colours too vivid. 
 
 Quality
 -------
@@ -134,7 +143,9 @@ Advanced Tuning and Configuration
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 
-**GI size** - How big an area to use for Fake Global Illumination. Runs faster if it is a whole number.
+**GI size** - How big an area to use for Fake Global Illumination. Might be faster if it is a whole number.
+
+**GI average light size** - How big an area to measure average scene light (for GI brightness). 7 for full screen, less allows some variation in different sections of picture.
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
@@ -159,6 +170,9 @@ Tips
 		
 Benchmark
 ---------
+
+TODO: redo this for version 2.
+
 - Game: Witcher 3 
 - Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
@@ -170,7 +184,7 @@ Benchmark
 	FPS	Settings
 	86	No post-processing
 
-**Fast_FXAA_sharpen_DOF_and_AO results**
+**Fast_FXAA_sharpen_DOF_and_AO v1.0 results (previous name for Glamarye Fast Effects)**
 
 	FPS	Settings
 	82	v1.0 defaults (Fast FXAA + sharpen + Fast AO + bounce + DOF)
@@ -182,7 +196,7 @@ Benchmark
 	81	Fast AO + bounce, FAST_AO_POINTS 12
 	80	v1.0 all max, FAST_AO_POINTS 12
 	
-	v2.0's Fake Global Illumination costs about 1 FPS more, if used with the rest. Full benchmark with v2.0 not done yet.
+**Note**: Full benchmark with v2.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6); so v2 is 1-2 FPS slower in default settings. However, it still does more in less time.
 
 **Witcher 3 builtin post-processing**
 
@@ -267,7 +281,13 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 1.0 (-) Initial public release
 
-Thank you macron & AlucardDH on ReShade forum for bug reports.
+Thank you:
+
+Alex Tuduran for suggestions and inspiration for the brightness part of Fake GI algorithm.
+
+macron & AlucardDH for bug reports.
+
+ReShade devs for ReShade.
 	
 */
 
@@ -279,13 +299,13 @@ Thank you macron & AlucardDH on ReShade forum for bug reports.
 #include "ReShade.fxh"
 #include "ReShadeUI.fxh"
 
-namespace Fast_FXAA_sharpen_DOF_and_AO 
+namespace Glamarye_Fast_Effects 
 {
 
 
 // This is your quality/speed trade-off. Miniumum 2, maximum 12 (you can go higher but it's not worth it - and above 20 it might break.). Feel free to go down to 3, or even 2 for some basic shading with minimal cost (but maybe not at max AO strength!)
 #ifndef FAST_AO_POINTS
-	#define FAST_AO_POINTS 6
+	#define FAST_AO_POINTS 8
 #endif
 
 //This was a GUI slider, but it caused problems with DirectX 9 games failing to compile it. Have to use pre-processor.
@@ -381,18 +401,18 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_label = "DOF blur";
 > = 0.3;
 
-uniform float gi_strength < __UNIFORM_SLIDER_FLOAT1
-    ui_category = "Effects Intensity";
-	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
-    ui_label = "GI colour";
-    ui_tooltip = "Fake Global Illumination. Colour change strength";
-> = .5;
-
 uniform float gi_brightness < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "GI brightness";
-    ui_tooltip = "Fake Global Illumination. Brightness change strength";
+    ui_tooltip = "Fake Global Illumination. Brightness change strength. High values can make some areas of high contrast scenes a bit dark. ";
+> = .5;
+
+uniform float gi_color < __UNIFORM_SLIDER_FLOAT1
+    ui_category = "Effects Intensity";
+	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
+    ui_label = "GI colour";
+    ui_tooltip = "Fake Global Illumination. Colour change strength. High values can make colours too vivid. ";
 > = .5;
 
 
@@ -434,9 +454,9 @@ uniform float gi_radius < __UNIFORM_SLIDER_FLOAT1
 uniform float gi_radius2 < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Tuning and Configuration";
 	ui_min = 5; ui_max = 7; ui_step = 0.1;
-	ui_tooltip = "GI size - how big an area to measure average light";
-	ui_label = "GI global light size";
-> = 6;
+	ui_tooltip = "How big an area to measure average scene light (for GI brightness). 7 for full screen, less allows some variation in different sections of picture.";
+	ui_label = "GI average light size";
+> = 6.3;
 
 uniform float ao_shape_modifier < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Tuning and Configuration";
@@ -549,7 +569,7 @@ float pointDepth(float2 texcoord)
 
 
 
-float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
+float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 {	
 	
 	//centre (original pixel)
@@ -683,17 +703,23 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		float3 unlit_c = original_c/gi.w;
 						
 		//Now calcule amount of light bouncing off current pixel. 
-		float3 gi_bounce = unlit_c * gi.rgb *gi_strength *1.5;
+		float3 gi_bounce = unlit_c * gi.rgb *gi_color *1.5;
 		
 		original_c=c;
 		c = c+ gi_bounce;
 				
 		//We've just made everything brigher - can overbrighten whole image so compensate for that.
-		c=c*(1-.5*sqrt(gi_strength));
+		c=c*(1-.5*sqrt(gi_color));
 		
 		if(gi_brightness) {
 			float3 overall_level = tex2Dlod(GISampler, float4(texcoord.x, texcoord.y, 0, gi_radius2)).rgb;
-			c=lerp(c, c*sqrt(length(gi.rgb))/sqrt(length(overall_level)), gi_brightness);
+			
+			//If depth_detect is enabled, we can get artifacts where world meets the sky at depth 1, so fade out this effect with depth.
+			float gi_ratio = 1;
+			if(depth_detect) gi_ratio -= depth;
+			
+			float gi_multiplier = clamp(sqrt(length(gi.rgb))/sqrt(length(overall_level)), 0.75, 2);
+			c=lerp(c, min(c*gi_multiplier,(c+1)/2), gi_brightness*gi_ratio);
 		}
 	}
 		
@@ -802,7 +828,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		//Because of our checkerboard pattern it can be too dark in the inner_circle and create a noticable step. This softens the inner circle (which will be darker anyway because outer_circle is probably dark too.)
 		if(square || points==2) ao*=(2.0/3.0);
 		
-		//Weaken the AO effect depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.	
+		//Weaken the AO effect if depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.	
 		float fog_fix_multiplier = min(1, (1-depth/ao_fog_fix)*2 );	
 		ao = ao*fog_fix_multiplier;
 		
@@ -855,11 +881,16 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 		}
 				
 		bounce = bounce*clamp(ao,0,.5);
-		
-		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
-		if (ao<0) ao*=ao_shine_strength;
-		else ao *= ao_strength*1.4; // multiply by 1.4 to compensate for the bounce value we're adding
 				
+		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
+		if (ao<0) {
+			ao*=ao_shine_strength;
+		}
+		else {
+			ao *= ao_strength*1.5; // multiply by 1.5 to compensate for the bounce value we're adding
+			bounce = min(c*ao*.5,bounce);
+		}
+		
 		//debug Show ambient occlusion mode
 		if(debug_mode==2) c=.5;
 				
@@ -879,7 +910,7 @@ float3 Fast_FXAA_sharpen_DOF_and_AO_PS(float4 vpos : SV_Position, float2 texcoor
 }
 
 
-technique Fast_FXAA_sharpen_DOF_and_AO <
+technique Glamarye_Fast_Effects <
 	ui_tooltip = "Designed for speed and quality, it combines multiple effects in one shader. Probably even faster than your game's built-in post-processing options (turn them off!).\n"
 				 "1. FXAA. Fixes jagged edges. \n"
 				 "2. Intelligent Sharpening. \n"				 
@@ -898,7 +929,7 @@ technique Fast_FXAA_sharpen_DOF_and_AO <
 	pass
 	{
 		VertexShader = PostProcessVS;
-		PixelShader = Fast_FXAA_sharpen_DOF_and_AO_PS;
+		PixelShader = Glamarye_Fast_Effects_PS;
 				
 		// Enable gamma correction applied to the output.
 		SRGBWriteEnable = true;
