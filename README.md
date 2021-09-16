@@ -155,7 +155,7 @@ Benchmark
 TODO: redo this for version 2.
 
 - Game: Witcher 3 
-- Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
+- Scene: [Beauclair looking at the water feature opposite the bank](/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
 - Shader version: 1.0 (didn't include fake global illumination effect)
