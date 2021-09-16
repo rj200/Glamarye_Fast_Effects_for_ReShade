@@ -36,7 +36,7 @@ Comparison (version 2.0)
 
 Tip: Ctrl+click the links to open each image in a new tab.
 
-[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg) 
+[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20defaults.jpg) 
 
 [No postprocessing](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg)
 	
