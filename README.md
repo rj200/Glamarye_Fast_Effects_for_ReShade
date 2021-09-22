@@ -1,13 +1,14 @@
-Glamarye Fast Effects for ReShade (version 2.0)
+Glamarye Fast Effects for ReShade (version 2.1)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 2.0:** Global Illumination... well, a fast 2D rough approximation of it! Renamed.
+**New in 2.1:** Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
 
 Author: Robert Jessop 
 
 License: MIT
+
 
 About
 -----
@@ -29,7 +30,7 @@ Tested in Toussaint :)
 
 ![Screenshot](v2.0%20max%20settings.jpg "Beauclair, The Witcher 3")
 
-Note: This is with maximum strength settings to make effects more clear. Default settings are more subtle than this.
+This was taken in version 2.0 with maximum strength settings to make effects more clear. Default settings are more subtle than this.
 
 Comparison (version 2.0)
 ----------
@@ -59,7 +60,9 @@ Setup
 	- If it depth buffer work in all areas of gameplay, then you probably want to enable "Detect menus & videos" too.
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
-	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 8 but 2-12 are all good options.
+	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 6 but 2-12 are all good options.
+	
+GShade: I have heard it works with GShade, but you might need to add "ReShade.fxh" and "ReShadeUI.fxh" from ReShade to your shaders directory too if you don't have them already.
 		
 Enabled/disable effects
 -----------------------
@@ -83,9 +86,9 @@ Effects Intensity
 
 **Sharpen strength** - For high values I suggest depth of field too.
 
-**AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas.
+**AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas. Tip: if increasing also increase FAST_AO_POINTS preprocessor definition for higher quality.
 
-**Bounce strength** - Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? 
+**Bounce strength** - Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? Tip: keep similar to AO strength.
 
 **AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
@@ -124,9 +127,7 @@ Advanced Tuning and Configuration
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 
-**GI size** - How big an area to use for Fake Global Illumination. Might be faster if it is a whole number.
-
-**GI average light size** - How big an area to measure average scene light (for GI brightness). 7 for full screen, less allows some variation in different sections of picture.
+**GI blur radius** - How big an area to use for Fake Global Illumination. 
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
@@ -240,6 +241,8 @@ There are two optional variations that change the Fast Ambient Occlusion algorit
 1. Shine. Normally AO is used only to make pixels darker. With the AO Shine setting (which is set quite low by default), we allow AO amount to be negative. This brightens convex areas (corners and bumps pointing at the camera.) Not super realistic but it really helps emphasise the shapes. This is basically free - instead of setting negative AO to zero we multiply it by ao_shine_strength.
 2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We want to find a point on the adjacent surface to sample the colour of. To do that we take the point in the circle closest to the camera, and the one opposite - one is probably the same as the centre and one an adjacent surface. We take the minimum of the two samples values to approximate the nearby surface's colour, erring on the side of less light. Next we estimate the light in the area, using the maximum of our samples and c. This is used to adjust c to estimate how much light it will reflect. We multiply this modified c with the bounce light, to get the light bouncing of the nearby surface, to c, then to the camera. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
 
+Fake Global Illumination is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we blur the main image to get the overall colour of light in each area. We also blur the maximum of red, green and blue to estimate the amount of ambient light in the area - this is used to help guess if current pixel's true surface colour -  is likely a light surface in shadow, or a dark surface in the light? This surface colour is multiplied by the overall light and added to the pixel. The pixel is darkenned to keep the overall image about the same brightness. We also blur the image again to get a larger ambient light area. The ratio of of two blurs is used as a multiplier for the pixel brightness - this gives some variation and increases the contrast between light and dark areas. Overall the image appears less flat - even if the illumination isn't always realistic, the subtle variations in shade help make the image seem more real.
+
 **Ideas for future improvement**
 
 Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
@@ -247,6 +250,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
 
 2.0 (*) Fake Global Illumination! Even better than the real thing (if speed is your main concern!)
 
@@ -264,7 +269,7 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 Thank you:
 
-Alex Tuduran for suggestions and inspiration for the brightness part of Fake GI algorithm.
+Alex Tuduran for the blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
 macron & AlucardDH for bug reports.
 
@@ -274,4 +279,3 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
-
