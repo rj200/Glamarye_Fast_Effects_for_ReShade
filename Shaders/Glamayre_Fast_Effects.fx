@@ -43,7 +43,7 @@ Tested in Toussaint :)
 
 ![Screenshot](v2.0%20max%20settings.jpg "Beauclair, The Witcher 3")
 
-Note: This is with maximum strength settings to make effects more clear. Default settings are more subtle than this.
+This was taken in version 2.0 with maximum strength settings to make effects more clear. Default settings are more subtle than this.
 
 Comparison (version 2.0)
 ----------
@@ -264,7 +264,7 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
-2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
+2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere. Smoother where GI meets sky detect.
 
 2.0 (*) Fake Global Illumination! Even better than the real thing (if speed is your main concern!)
 
@@ -814,24 +814,24 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 		
 		//Estimate of actual colour of c, before direct lighting landed on it.
 		float3 unlit_c = original_c/gi.w;
-						
+		
+		//If depth_detect is enabled, we can get artifacts where world meets the sky at depth 1, so fade out this effect with depth.
+		float gi_ratio = 1;
+		if(depth_detect) gi_ratio -= depth;
+							
 		//Now calcule amount of light bouncing off current pixel. 
-		float3 gi_bounce = unlit_c * gi.rgb *gi_color*1.5;
+		float3 gi_bounce = unlit_c * gi.rgb *gi_ratio*gi_color*1.5;
 						
 		original_c=c;
 		
 		c = c+ gi_bounce;
 				
 		//We've just made everything brigher - can overbrighten whole image so compensate for that.
-		c=c*(1-.5*sqrt(gi_color));
+		c=c*(1-.5*sqrt(gi_ratio*gi_color));
 				
 		if(gi_brightness) {
 			overall_level = tex2D(VBlurSampler, texcoord).rgb;
-			
-			//If depth_detect is enabled, we can get artifacts where world meets the sky at depth 1, so fade out this effect with depth.
-			float gi_ratio = 1;
-			if(depth_detect) gi_ratio -= depth;
-			
+						
 			float gi_multiplier = clamp(sqrt(length(gi.rgb))/sqrt(length(overall_level)), 0.75, 2);
 			c=lerp(c, min(c*gi_multiplier,(c+1)/2), gi_brightness*gi_ratio);
 		}	 
