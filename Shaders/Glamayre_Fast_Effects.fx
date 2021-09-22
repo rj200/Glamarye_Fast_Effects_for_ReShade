@@ -7,13 +7,13 @@ Glamarye Fast Effects for ReShade (version 2.0)
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 2.0:** Global Illumination... well, a fast 2D rough approximation of it! Renamed.
+**New in 2.1:** Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
 
 Author: Robert Jessop 
 
 License: MIT
 	
-Copyright 2021 Robert Jessop
+Copyright 2021 Robert Jessop (main shader), Alex Tuderan (blur functions)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -45,17 +45,12 @@ Tested in Toussaint :)
 
 Note: This is with maximum strength settings to make effects more clear. Default settings are more subtle than this.
 
-Glamarye?
-----------
-
-In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
-
 Comparison (version 2.0)
 ----------
 
 Tip: Ctrl+click the links to open each image in a new tab.
 
-[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg) 
+[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20defaults.jpg) 
 
 [No postprocessing](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg)
 	
@@ -63,7 +58,7 @@ Setup
 -----
 	
 1. Install ReShade and configure it for your game (See https://reshade.me)
-2. Copy Glamarye_Fast_Effects.fx to ReShade's Shaders folder within the game's folder (e.g. C:\Program Files (x86)\Steam\steamapps\common\The Witcher 3\bin\x64\reshade-shaders\Shaders)
+2. Copy Shaders/Glamarye_Fast_Effects.fx to ReShade's Shaders folder within the game's folder (e.g. C:\Program Files (x86)\Steam\steamapps\common\The Witcher 3\bin\x64\reshade-shaders\Shaders)
 3. Run the game
 4. Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options (if it has them).
 	- Some games do not have individual options, but have a single "post-processing" setting. Setting that to the lowest value will probably disable them all.
@@ -78,7 +73,9 @@ Setup
 	- If it depth buffer work in all areas of gameplay, then you probably want to enable "Detect menus & videos" too.
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
-	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 8 but 2-12 are all good options.
+	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 6 but 2-12 are all good options.
+	
+GShade: I have heard it works with GShade, but you might need to add "ReShade.fxh" and "ReShadeUI.fxh" from ReShade to your shaders directory too if you don't have them already.
 		
 Enabled/disable effects
 -----------------------
@@ -102,9 +99,9 @@ Effects Intensity
 
 **Sharpen strength** - For high values I suggest depth of field too.
 
-**AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas.
+**AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas. Tip: if increasing also increase FAST_AO_POINTS preprocessor definition for higher quality.
 
-**Bounce strength** - Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? 
+**Bounce strength** - Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? Tip: keep similar to AO strength.
 
 **AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
@@ -143,9 +140,7 @@ Advanced Tuning and Configuration
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 
-**GI size** - How big an area to use for Fake Global Illumination. Might be faster if it is a whole number.
-
-**GI average light size** - How big an area to measure average scene light (for GI brightness). 7 for full screen, less allows some variation in different sections of picture.
+**GI blur radius** - How big an area to use for Fake Global Illumination. 
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
@@ -174,10 +169,10 @@ Benchmark
 TODO: redo this for version 2.
 
 - Game: Witcher 3 
-- Scene: [Beauclair looking at the water feature opposite the bank](/Comparison%20Screenshots%20Witcher%203/Benchmark%20Location.png) 
+- Scene: [Beauclair looking at the water feature opposite the bank](/Benchmark%20Location.png) 
 - Settings: 1080p, Graphics settings low
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
-- Shader version: 1.0 (didn't including fake global illumination effect)
+- Shader version: 1.0 (didn't include fake global illumination effect)
 
 **Baseline**
 
@@ -196,7 +191,7 @@ TODO: redo this for version 2.
 	81	Fast AO + bounce, FAST_AO_POINTS 12
 	80	v1.0 all max, FAST_AO_POINTS 12
 	
-**Note**: Full benchmark with v2.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6); so v2 is 1-2 FPS slower in default settings. However, it still does more in less time.
+**Note**: Full benchmark with v2.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6). V2 is 1-2 FPS slower in default settings, but if configured like 1.0 a tiny bit faster.
 
 **Witcher 3 builtin post-processing**
 
@@ -259,6 +254,8 @@ There are two optional variations that change the Fast Ambient Occlusion algorit
 1. Shine. Normally AO is used only to make pixels darker. With the AO Shine setting (which is set quite low by default), we allow AO amount to be negative. This brightens convex areas (corners and bumps pointing at the camera.) Not super realistic but it really helps emphasise the shapes. This is basically free - instead of setting negative AO to zero we multiply it by ao_shine_strength.
 2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We want to find a point on the adjacent surface to sample the colour of. To do that we take the point in the circle closest to the camera, and the one opposite - one is probably the same as the centre and one an adjacent surface. We take the minimum of the two samples values to approximate the nearby surface's colour, erring on the side of less light. Next we estimate the light in the area, using the maximum of our samples and c. This is used to adjust c to estimate how much light it will reflect. We multiply this modified c with the bounce light, to get the light bouncing of the nearby surface, to c, then to the camera. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
 
+Fake Global Illumination is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we blur the main image to get the overall colour of light in each area. We also blur the maximum of red, green and blue to estimate the amount of ambient light in the area - this is used to help guess if current pixel's true surface colour -  is likely a light surface in shadow, or a dark surface in the light? This surface colour is multiplied by the overall light and added to the pixel. The pixel is darkenned to keep the overall image about the same brightness. We also blur the image again to get a larger ambient light area. The ratio of of two blurs is used as a multiplier for the pixel brightness - this gives some variation and increases the contrast between light and dark areas. Overall the image appears less flat - even if the illumination isn't always realistic, the subtle variations in shade help make the image seem more real.
+
 **Ideas for future improvement**
 
 Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
@@ -266,6 +263,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
 
 2.0 (*) Fake Global Illumination! Even better than the real thing (if speed is your main concern!)
 
@@ -283,11 +282,17 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 Thank you:
 
-Alex Tuduran for suggestions and inspiration for the brightness part of Fake GI algorithm.
+Alex Tuduran for the blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
 macron & AlucardDH for bug reports.
 
 ReShade devs for ReShade.
+
+Glamarye?
+----------
+
+In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
+
 	
 */
 
@@ -305,7 +310,7 @@ namespace Glamarye_Fast_Effects
 
 // This is your quality/speed trade-off. Miniumum 2, maximum 12 (you can go higher but it's not worth it - and above 20 it might break.). Feel free to go down to 3, or even 2 for some basic shading with minimal cost (but maybe not at max AO strength!)
 #ifndef FAST_AO_POINTS
-	#define FAST_AO_POINTS 8
+	#define FAST_AO_POINTS 6
 #endif
 
 //This was a GUI slider, but it caused problems with DirectX 9 games failing to compile it. Have to use pre-processor.
@@ -376,30 +381,30 @@ uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
 uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
-	ui_tooltip = "Ambient Occlusion. Higher mean deeper shade in concave areas.\n\nFor quality adjustment, set preprocessor definition FAST_AO_POINTS. Higher is better quality but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. ";
+	ui_tooltip = "Ambient Occlusion. Higher mean deeper shade in concave areas.\n\nFor quality adjustment, set preprocessor definition FAST_AO_POINTS. Higher is better quality but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. Tip: if increasing AO strength also increase FAST_AO_POINTS preprocessor definition. ";
 	ui_label = "AO strength";
-> = 0.7;
+> = 0.5;
 
 uniform float bounce_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "Bounce strength";
-    ui_tooltip = "Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? ";
-> = .7;
+    ui_tooltip = "Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? Tip: keep similar to AO strength.";
+> = .5;
 
 uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
 	ui_min = 0.0; ui_max = 1; ui_step = .05;
     ui_label = "AO shine";
-    ui_tooltip = "Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic. ";
-> = .3;
+    ui_tooltip = "Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. ";
+> = .5;
 
 uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
 	ui_min = 0; ui_max = 1; ui_step = .05;
 	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).";
 	ui_label = "DOF blur";
-> = 0.3;
+> = 0.5;
 
 uniform float gi_brightness < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
@@ -444,19 +449,13 @@ uniform float ao_radius < __UNIFORM_SLIDER_FLOAT1
 	ui_label = "AO radius";
 > = 1;
 
-uniform float gi_radius < __UNIFORM_SLIDER_FLOAT1
-	ui_category = "Advanced Tuning and Configuration";
-	ui_min = 2; ui_max = 7; ui_step = 0.1;
-	ui_tooltip = "GI size - how big an area to blur for GI. Might be faster if it is a whole number.";
-	ui_label = "GI size";
-> = 4.5;
-
-uniform float gi_radius2 < __UNIFORM_SLIDER_FLOAT1
-	ui_category = "Advanced Tuning and Configuration";
-	ui_min = 5; ui_max = 7; ui_step = 0.1;
-	ui_tooltip = "How big an area to measure average scene light (for GI brightness). 7 for full screen, less allows some variation in different sections of picture.";
-	ui_label = "GI average light size";
-> = 6.3;
+uniform float BlurRadius < __UNIFORM_SLIDER_FLOAT1
+    ui_min = 0.0;
+    ui_max = 1.00;
+    ui_category = "Advanced Tuning and Configuration";
+    ui_label = "GI Blur Radius";
+    ui_tooltip = "How big an area to use for Fake Global Illumination. ";
+> = 1;
 
 uniform float ao_shape_modifier < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Tuning and Configuration";
@@ -514,24 +513,137 @@ sampler2D samplerDepth
 	MipFilter = POINT;
 };
 
+#define GI_WIDTH 240
+#define GI_HEIGHT 135
 
-texture2D GITexture 	{ Width = 320;   Height = 180;   Format = RGBA16F;  MipLevels = 8;};
+texture2D GITexture 	{ Width = GI_WIDTH;   Height = GI_HEIGHT;   Format = RGBA16F; };
 sampler2D GISampler	{ Texture = GITexture;	};
 
-float4 makeGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
+
+float4 makeGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 {
 	if(!gi_enabled) discard;
 	
 	float4 c=0;
 	if(gi_enabled) { 
-		c = tex2D(samplerColor, texcoord);
 		
+		c = tex2D(samplerColor, texcoord);
+				
 		//w, the maximum colour is used later to help estimate the amount of ambient light in the area.
 		c.w=max(c.r,max(c.g,c.b));
 	}
 	
 	return c;
 }
+
+// Start of blur functions from https://github.com/AlexTuduran/FGFX/blob/main/Shaders/FGFXFastCascadedSeparableBlur16X.fx
+// FGFX::FCSB[16X] - Fast Cascaded Separable Blur [16X]
+// Author  : Alex Tuduran | Licence: MIT 
+// Minor modifications by Robert Jessop (I'm just using a subset to keep it simple and fast - see the original for comments and best quality blur.)
+
+
+
+texture HBlurTex {
+    Width = GI_WIDTH ;
+    Height = GI_HEIGHT ;
+    Format = RGBA16F;
+};
+
+sampler HBlurSampler {
+    Texture = HBlurTex;
+};
+
+texture VBlurTex {
+    Width = GI_WIDTH ;
+    Height = GI_HEIGHT ;
+    Format = RGBA16F;
+};
+
+sampler VBlurSampler {
+    Texture = VBlurTex;
+};
+
+
+#define ___ONE_THIRD___ (0.333333333)
+
+// -------------------------------------------------------------------------- //
+
+//simplified for our constant size fake GI buffer
+static const float2 ___SCALED_BUFFER_SIZE_DIVIDER_DIVIDER_COMPENSATION_OFFSET___ = 1.5/float2(GI_WIDTH,GI_HEIGHT);
+
+
+float4 HBlur(in float2 texcoord : TEXCOORD, float blurSampleOffset, sampler srcSampler) {
+    float offset = ___SCALED_BUFFER_SIZE_DIVIDER_DIVIDER_COMPENSATION_OFFSET___.x * blurSampleOffset * BlurRadius;
+
+    float4 color = tex2D(srcSampler, texcoord); // center
+    color += tex2D(srcSampler, float2(texcoord.x - offset, texcoord.y)); // left-center
+    color += tex2D(srcSampler, float2(texcoord.x + offset, texcoord.y)); // right-center
+    color *= ___ONE_THIRD___;
+
+    return color;
+}
+
+float4 VBlur(in float2 texcoord : TEXCOORD, float blurSampleOffset, sampler srcSampler) {
+    float offset = ___SCALED_BUFFER_SIZE_DIVIDER_DIVIDER_COMPENSATION_OFFSET___.y * blurSampleOffset * BlurRadius;
+
+    float4 color = tex2D(srcSampler, texcoord); // center
+    color += tex2D(srcSampler, float2(texcoord.x, texcoord.y - offset)); // center-bottom
+    color += tex2D(srcSampler, float2(texcoord.x, texcoord.y + offset)); // center-top
+    color *= ___ONE_THIRD___;
+
+    return color;
+}
+
+// -------------------------------------------------------------------------- //
+// cascade 0 
+// -------------------------------------------------------------------------- //
+
+float4 HBlurC0PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+    if(!gi_enabled) discard;
+	// reads from VBlurTex, writes to HBlurTex
+    return HBlur(texcoord, 1, VBlurSampler);
+}
+
+float4 VBlurC0PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+    if(!gi_enabled) discard;
+	// reads from HBlurTex, writes to VBlurTex
+    return VBlur(texcoord, 1, HBlurSampler);
+}
+
+// -------------------------------------------------------------------------- //
+// cascade 1 
+// -------------------------------------------------------------------------- //
+
+float4 HBlurC1PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+    if(!gi_enabled) discard;
+	// reads from VBlurTex, writes to HBlurTex
+    return HBlur(texcoord, 3, VBlurSampler);
+}
+
+float4 VBlurC1PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+    if(!gi_enabled) discard;
+	// reads from HBlurTex, writes to VBlurTex
+    return VBlur(texcoord, 3, HBlurSampler);
+}
+
+// -------------------------------------------------------------------------- //
+// cascade 2 
+// -------------------------------------------------------------------------- //
+
+float4 HBlurC2PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+    if(!gi_enabled || gi_brightness==0) discard;
+	// reads from VBlurTex, writes to HBlurTex
+    return HBlur(texcoord, 9, GISampler);
+}
+
+float4 VBlurC2PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+    if(!gi_enabled || gi_brightness==0) discard;
+	// reads from HBlurTex, writes to VBlurTex
+    return VBlur(texcoord, 9, HBlurSampler);
+}
+
+
+// End of blur functions by alex.tuderan
 
 	
 // This is copy of reshade's getLinearizedDepth but using POINT sampling (LINEAR interpolation can cause artefacts - thin ghost of edge one radius away.)
@@ -694,25 +806,27 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 	
 	// Fake Global Illumination - 2D, no depth. Works better than you might expect!
 	float4 gi=0;
+	float3 overall_level=0;
 	if(gi_enabled){				
 		
 		// Local ambient light - just a very low resolution blurred version of our image
-		gi = tex2Dlod(GISampler, float4(texcoord.x, texcoord.y, 0, gi_radius));
+		gi = tex2D(GISampler, texcoord);
 		
 		//Estimate of actual colour of c, before direct lighting landed on it.
 		float3 unlit_c = original_c/gi.w;
 						
 		//Now calcule amount of light bouncing off current pixel. 
-		float3 gi_bounce = unlit_c * gi.rgb *gi_color *1.5;
-		
+		float3 gi_bounce = unlit_c * gi.rgb *gi_color*1.5;
+						
 		original_c=c;
+		
 		c = c+ gi_bounce;
 				
 		//We've just made everything brigher - can overbrighten whole image so compensate for that.
 		c=c*(1-.5*sqrt(gi_color));
-		
+				
 		if(gi_brightness) {
-			float3 overall_level = tex2Dlod(GISampler, float4(texcoord.x, texcoord.y, 0, gi_radius2)).rgb;
+			overall_level = tex2D(VBlurSampler, texcoord).rgb;
 			
 			//If depth_detect is enabled, we can get artifacts where world meets the sky at depth 1, so fade out this effect with depth.
 			float gi_ratio = 1;
@@ -720,7 +834,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 			
 			float gi_multiplier = clamp(sqrt(length(gi.rgb))/sqrt(length(overall_level)), 0.75, 2);
 			c=lerp(c, min(c*gi_multiplier,(c+1)/2), gi_brightness*gi_ratio);
-		}
+		}	 
 	}
 		
 	//Fast screen-space ambient occlusion. It does a good job of shading concave corners facing the camera, even with few samples.
@@ -745,9 +859,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 		
 		// Get circle of depth samples.	
 		float2 the_vector;
-		
-		float2 gi_vector=0;
-		
+				
 		[unroll]
 		for(i = 0; i<points; i++) {
 			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
@@ -768,8 +880,6 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 			
 			//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
 			s[i] = min( s[i], max_depth );	
-						
-			if(gi_enabled) if(s[i]>depth) gi_vector+=the_vector*(s[i]-depth);
 		}
 		
 		const float shape = FLT_EPSILON*ao_shape_modifier; 
@@ -833,7 +943,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 		ao = ao*fog_fix_multiplier;
 		
 		//If bounce lighting isn't enabled we actually pretend it is using c*smoothed to get better colour in bright areas (otherwise shade can be too deep or too grey.)
-		float3 bounce=smoothed*c*ao_strength;
+		float3 bounce=smoothed*c*bounce_strength;
 		
 		//Coloured bounce lighting from nearby
 		float3 bounce1=0;
@@ -884,11 +994,12 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 				
 		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
 		if (ao<0) {
-			ao*=ao_shine_strength;
+			ao*=ao_shine_strength*.7;
 		}
 		else {
-			ao *= ao_strength*1.5; // multiply by 1.5 to compensate for the bounce value we're adding
-			bounce = min(c*ao*.5,bounce);
+			bounce = min(c*ao*.7*bounce_strength/ao_strength,bounce);
+			ao *= ao_strength*1.4; // multiply by 1.4 to compensate for the bounce value we're adding
+			
 		}
 		
 		//debug Show ambient occlusion mode
@@ -899,8 +1010,9 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 		
 	}	
 		
-	if(debug_mode==5) c=gi.rgb;
-	if(debug_mode==6) c=gi.w;
+	if(debug_mode==5) c=gi.rgb;	
+	if(debug_mode==6) c=length(overall_level);
+	
 	
 	//Show depth buffer mode
 	if(debug_mode == 3) c = depth ; 	
@@ -924,8 +1036,69 @@ technique Glamarye_Fast_Effects <
 	{
 		VertexShader = PostProcessVS;
 		PixelShader = makeGI_PS;
-		RenderTarget = GITexture;		
+		RenderTarget = VBlurTex;		
 	}	
+
+	pass HBlurC0R {
+        VertexShader = PostProcessVS;
+        PixelShader  = HBlurC0PS;
+        RenderTarget = HBlurTex;
+    }
+
+    pass VBlurC0R {
+        VertexShader = PostProcessVS;
+        PixelShader  = VBlurC0PS;
+        RenderTarget = VBlurTex;
+    }
+	
+	pass HBlurC0S {
+        VertexShader = PostProcessVS;
+        PixelShader  = HBlurC0PS;
+        RenderTarget = HBlurTex;
+    }
+
+    pass VBlurC0S {
+        VertexShader = PostProcessVS;
+        PixelShader  = VBlurC0PS;
+        RenderTarget = VBlurTex;
+    }
+
+    pass HBlurC0SS {
+        VertexShader = PostProcessVS;
+        PixelShader  = HBlurC0PS;
+        RenderTarget = HBlurTex;
+    }
+
+    pass VBlurC0SS {
+        VertexShader = PostProcessVS;
+        PixelShader  = VBlurC0PS;
+        RenderTarget = VBlurTex;
+    }
+
+	pass HBlurC1R {
+        VertexShader = PostProcessVS;
+        PixelShader  = HBlurC1PS;
+        RenderTarget = HBlurTex;
+    }
+
+    pass VBlurC1R {
+        VertexShader = PostProcessVS;
+        PixelShader  = VBlurC1PS;
+        RenderTarget = GITexture;
+    }
+	
+	pass HBlurC2R {
+        VertexShader = PostProcessVS;
+        PixelShader  = HBlurC2PS;
+        RenderTarget = HBlurTex;
+    }
+
+    pass VBlurC2R {
+        VertexShader = PostProcessVS;
+        PixelShader  = VBlurC2PS;
+        RenderTarget = VBlurTex;
+    }
+	
 	pass
 	{
 		VertexShader = PostProcessVS;
@@ -936,4 +1109,5 @@ technique Glamarye_Fast_Effects <
 	}	
 }
 
+//END OF NAMESPACE
 }
