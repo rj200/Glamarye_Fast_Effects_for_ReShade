@@ -686,8 +686,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 	
 	//centre (original pixel)
 	float3 c = tex2D(samplerColor, texcoord).rgb;	
-	float3 original_c = c;
-	
+		
 	//centre pixel depth
 	float depth=0;
 	
@@ -813,7 +812,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 		gi = tex2D(GISampler, texcoord);
 		
 		//Estimate of actual colour of c, before direct lighting landed on it.
-		float3 unlit_c = original_c/gi.w;
+		float3 unlit_c = c/gi.w;
 		
 		//If depth_detect is enabled, we can get artifacts where world meets the sky at depth 1, so fade out this effect with depth.
 		float gi_ratio = 1;
@@ -821,8 +820,6 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 							
 		//Now calcule amount of light bouncing off current pixel. 
 		float3 gi_bounce = unlit_c * gi.rgb *gi_ratio*gi_color*1.5;
-						
-		original_c=c;
 		
 		c = c+ gi_bounce;
 				
