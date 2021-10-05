@@ -1,14 +1,13 @@
-Glamarye Fast Effects for ReShade (version 2.1)
+Glamarye Fast Effects for ReShade (version 3.0)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 2.1:** Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
+**New in 3.0:** More tweaks to Fake GI - improving its performance. Improved FXAA quality. Improved sharpen quality. Simplified main settings. Added dropdown to select from two AO quality levels.
 
 Author: Robert Jessop 
 
 License: MIT
-
 
 About
 -----
@@ -60,7 +59,6 @@ Setup
 	- If it depth buffer work in all areas of gameplay, then you probably want to enable "Detect menus & videos" too.
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
-	- To make it faster, reduce FAST_AO_POINTS preprocessor definition (minimum: 2). For better quality, increase FAST_AO_POINTS! Default is 6 but 2-12 are all good options.
 	
 GShade: I have heard it works with GShade, but you might need to add "ReShade.fxh" and "ReShadeUI.fxh" from ReShade to your shaders directory too if you don't have them already.
 		
@@ -88,20 +86,14 @@ Effects Intensity
 
 **AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas. Tip: if increasing also increase FAST_AO_POINTS preprocessor definition for higher quality.
 
-**Bounce strength** - Multiplier for local bounced light. A bright red pillar by a white wall will make the wall a bit red, but how red? Tip: keep similar to AO strength.
+**AO Quality** - Quality mode is slower, but recommended if using a high AO strength setting. Quality mode uses twice as many depth samples than Performance mode. 
 
 **AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
-**GI brightness** - Fake Global Illumination. Brightness change strength. Too high can make some areas of high contrast scenes too dark. 
+**GI strength** - Fake Global Illumination strength. High values can make colours too vivid.
 
-**GI colour** - Fake Global Illumination. Colour change strength. High values can make colours too vivid. 
-
-Quality
--------
-
-**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of sample points. The is your speed vs quality knob; higher is better but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. If you break it by setting an invalid value you may need to go into the game's directory and edit the value in ReShadePreset.ini to fix it.
 
 Output mode
 -----------
@@ -123,37 +115,44 @@ Output mode
 Advanced Tuning and Configuration
 ------------------------
 
+You probably don't want to adjust these, unless your game has visible artefacts with the defaults.
+
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 
-**GI blur radius** - How big an area to use for Fake Global Illumination. 
+**Bounce multiplier** Bounce strength is proportionate to AO strength, use this to make it stronger or weaker. A bright red pillar by a white wall will make the wall a bit red, but how red?
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
 **AO max depth diff** - Ambient occlusion biggest depth difference to allow, as percent of depth. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
 
+**FXAA bias** - Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. This FXAA algorithm is designed for speed and doesn't look as far along the edges as others - for best quality you might want turn it off and use a different shader, such as SMAA.
+
+**Fake GI contrast** - Increases contrast of image when Fake GI is enabled. <= 0.5 recommended.
+
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode (this number is doubled in quality mode). The is a more fine grained speed vs quality knob; higher is better but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. If you break it by setting an invalid value you may need to go into the game's directory and edit the value in ReShadePreset.ini to fix it.
 
 Tips
 ----
 
 - Check if game provides depth buffer! If not turn of depth of field, ambient occlusion and detect menus for better performance (they won't affect the image if left on by mistake).
-- Bounce lighting is off by default because it makes AO twice as slow, and is slightly more likely to have artefacts due to low sample count. However, most of the time it really makes shading look more realistic so turn it on if you can spare 2 fps.
 - If depth is always available during gameplay then enabling Detect menus and videos is recommended to make non-gamplay parts clearer. 
 - If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
 - If you don't like an effect then reduce it or turn it off. Disabling effects improves performance, except sharpening, which is basically free if FXAA or depth of field is on.	
-- If the game uses lots of semi-transparent effects like smoke or fog, and you get incorrect shadows/silluettes then you may need to tweak AO max distance. Alternatively, you could use the game's own slower SSAO option if it has one. This is a limitation of ReShade and similar tools, ambient occlusion should be drawn before transparent objects, but ReShade can only work with the output of the game and apply it afterwards.
-- You can mix and match with in-game options or other ReShade shaders, though you lose some the performance benefits of a combined shader.
+- If the game uses lots of semi-transparent effects like smoke or fog, and you get incorrect shadows/silluettes then you may need to tweak AO max distance. Alternatively, you could use the game's own slower SSAO option if it has one. This is a limitation of ReShade and similar tools - ambient occlusion should be done before transparent objects, but ReShade can only work with the output of the game and apply it after.
+- You can mix and match with in-game options or other ReShade shaders, though you lose some the performance benefits of a combined shader. Make sure you don't have two effects of the same type enabled.
 - Don't set FAST_AO_POINTS higher than 12 - the algorithm is designed for few points and won't use the extra points wisely.
 - Experiment!
-	* How much sharpen and depth of field is really a matter of personal taste. 
-	* Don't be afraid to try lower FAST_AO_POINTS if you want maximum performance. Even a little bit of AO can make the image look less flat.
-	* Be careful with ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. It looks cool at the maximum but is it realistic? Less can be more; even a tiny bit of AO makes everything look more three-dimensional.
+	* What strength settings looks best may depend on the game, and on your monitor or TV's settings (your TV's "game mode" may have some built-in sharpening for example).
+	* Depth of field, AO Shine, and Fake Glboal Illumination are really a matter of personal taste. 
+	* Don't be afraid to try lower FAST_AO_POINTS (minimum: 2) and turn off bounce lighting if you want really fast AO. Even very low quality AO can make the image look better (but keep strength <= 0.5).
+	* Be careful with the advanced ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. 
 		
 Benchmark
 ---------
 
-TODO: redo this for version 2.
+TODO: redo this for current version.
 
 - Game: Witcher 3 
 - Scene: [Beauclair looking at the water feature opposite the bank](/Benchmark%20Location.png) 
@@ -178,7 +177,7 @@ TODO: redo this for version 2.
 	81	Fast AO + bounce, FAST_AO_POINTS 12
 	80	v1.0 all max, FAST_AO_POINTS 12
 	
-**Note**: Full benchmark with v2.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6). V2 is 1-2 FPS slower in default settings, but if configured like 1.0 a tiny bit faster.
+**Note**: Full benchmark with v2.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6). V2 is 1-2 FPS slower in its default settings, but if configured like 1.0 is faster.
 
 **Witcher 3 builtin post-processing**
 
@@ -251,7 +250,9 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
-2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere.
+3.0 (+) More tweaks to Fake GI - improving performance and smoothness. Improved FXAA quality (fixed rare divide by zero and fixed subtle issue where Fake GI combined badly with FXAA). Improved sharpen quality (better clamp limits). Simplified main settings. Added dropdown to select from two AO quality levels. Bounce tweaked and moved bounce strength to advanced settings (it is now equal to ao_strength by default - having them different is usually worse.)
+
+2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere. Smoother where GI meets sky detect.
 
 2.0 (*) Fake Global Illumination! Even better than the real thing (if speed is your main concern!)
 
@@ -279,3 +280,5 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
+
+	
