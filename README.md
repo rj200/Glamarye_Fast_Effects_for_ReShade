@@ -1,9 +1,11 @@
-Glamarye Fast Effects for ReShade (version 3.0)
+Glamarye Fast Effects for ReShade (version 3.1)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 3.0:** More tweaks to Fake GI - improving its performance. Improved FXAA quality. Improved sharpen quality. Simplified main settings. Added dropdown to select from two AO quality levels.
+**New in 3.0:** More tweaks to Fake GI - improving its performance. Improved FXAA quality. Improved sharpen quality. Simplified main settings. Added dropdown to select from two AO quality levels. 
+
+**New in 3.1:** Option to Reduce AO in bright areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire.
 
 Author: Robert Jessop 
 
@@ -117,6 +119,8 @@ Advanced Tuning and Configuration
 
 You probably don't want to adjust these, unless your game has visible artefacts with the defaults.
 
+**Reduce AO in bright areas** - Do not shade very light areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire, but also reduces them in solid white objects. Increase if you see shadows in white smoke, decrease for more shade on light objects. Doesn't help with dark smoke.
+
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
@@ -177,7 +181,7 @@ TODO: redo this for current version.
 	81	Fast AO + bounce, FAST_AO_POINTS 12
 	80	v1.0 all max, FAST_AO_POINTS 12
 	
-**Note**: Full benchmark with v2.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6). V2 is 1-2 FPS slower in its default settings, but if configured like 1.0 is faster.
+**Note**: Full benchmark with v3.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6). V2 is 1-2 FPS slower in its default settings, but if configured like 1.0 is faster.
 
 **Witcher 3 builtin post-processing**
 
@@ -250,6 +254,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+3.1 (+) Option to Reduce AO in bright areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire.
+
 3.0 (+) More tweaks to Fake GI - improving performance and smoothness. Improved FXAA quality (fixed rare divide by zero and fixed subtle issue where Fake GI combined badly with FXAA). Improved sharpen quality (better clamp limits). Simplified main settings. Added dropdown to select from two AO quality levels. Bounce tweaked and moved bounce strength to advanced settings (it is now equal to ao_strength by default - having them different is usually worse.)
 
 2.1 (+) Smoother blur for Fake Global Illumination light, which fixes artefacts (thank you Alex Tuderan). Tweaked defaults. Minor tweaks elsewhere. Smoother where GI meets sky detect.
@@ -280,5 +286,3 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
-
-	
