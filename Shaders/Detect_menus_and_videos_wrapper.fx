@@ -14,6 +14,8 @@
 	
 	If it doesn't work then make sure your depth buffer is setup correctly (using DisplayDepth) and check if your game actually has non-zero depth during gameplay and zero depth buffer during menus/videos.
     
+    	Based partly on https://github.com/CeeJayDK/SweetFX/blob/master/Shaders/Splitscreen.fx by CeeJay.dk (MIT licence)
+	
 	Ideas for future improvement:
     *
 
