@@ -2,12 +2,12 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 3.1)
+Glamarye Fast Effects for ReShade (version 3.2)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 3.0:** More tweaks to Fake GI - improving its performance. Improved FXAA quality. Improved sharpen quality. Simplified main settings. Added dropdown to select from two AO quality levels. **New in 3.1:** Option to Reduce AO in bright areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire.
+**New in 3.2:** Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia - looks like too many registers so need to simplify.
 
 Author: Robert Jessop 
 
@@ -100,14 +100,13 @@ Effects Intensity
 
 **AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas. Tip: if increasing also increase FAST_AO_POINTS preprocessor definition for higher quality.
 
-**AO Quality** - Quality mode is slower, but recommended if using a high AO strength setting. Quality mode uses twice as many depth samples than Performance mode. 
-
 **AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
 **GI strength** - Fake Global Illumination strength. High values can make colours too vivid.
 
+**AO Quality** - Due to compatibility with older drivers and D3D9 games this option has been removed - however you can still increase quality by changing the preprocessor definition FAST_AO_POINTS (defauly is 6, try 12 for best quality.)
 
 Output mode
 -----------
@@ -147,7 +146,7 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **Fake GI contrast** - Increases contrast of image when Fake GI is enabled. <= 0.5 recommended.
 
-**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode (this number is doubled in quality mode). The is a more fine grained speed vs quality knob; higher is better but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. If you break it by setting an invalid value you may need to go into the game's directory and edit the value in ReShadePreset.ini to fix it.
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 3-12 is the sensible range - algorithm isn't designed to take advantage of more points. 
 
 Tips
 ----
@@ -266,6 +265,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+3.2 (x) Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia  - looks like too many registers so need to simplify. Change AO to use float4x4 to sav intructions and registers.
+
 3.1 (+) Option to Reduce AO in bright areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire.
 
 3.0 (+) More tweaks to Fake GI - improving performance and smoothness. Improved FXAA quality (fixed rare divide by zero and fixed subtle issue where Fake GI combined badly with FXAA). Improved sharpen quality (better clamp limits). Simplified main settings. Added dropdown to select from two AO quality levels. Bounce tweaked and moved bounce strength to advanced settings (it is now equal to ao_strength by default - having them different is usually worse.)
@@ -290,7 +291,7 @@ Thank you:
 
 Alex Tuduran for the blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
-macron & AlucardDH for bug reports.
+macron, AlucardDH, NikkMann, Mirt81 for bug reports.
 
 ReShade devs for ReShade.
 
@@ -390,7 +391,7 @@ uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_label = "AO strength";
 > = 0.5;
 
-
+/* To help issue with shader size in D3D9 Disabling this.
 uniform int ao_fast <
     ui_category = "Effects Intensity";
 	ui_type = "combo";
@@ -399,6 +400,7 @@ uniform int ao_fast <
 	           "High Performance\0";
 	ui_tooltip = "Quality mode is slower, but recommended if using a high AO strength setting. Quality mode uses twice as many depth samples than Performance mode. ";
 > = 1;
+*/
 
 uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Effects Intensity";
@@ -516,6 +518,7 @@ uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
 	ui_label = "Fake GI contrast";
 > = 0.5;
 
+
 uniform bool abtest <
     ui_category = "Advanced Tuning and Configuration";
     ui_label = "A/B test";
@@ -556,18 +559,23 @@ sampler2D samplerDepth
 	MinFilter = POINT;
 	MipFilter = POINT;
 };
+#ifndef BLUR_ABTEST
+	#define BLUR_ABTEST 1
+#endif
 
 #ifndef FAKE_GI_WIDTH
 	#define FAKE_GI_WIDTH 320
 #endif
 #ifndef FAKE_GI_HEIGHT
-	#define FAKE_GI_HEIGHT 160
+	#define FAKE_GI_HEIGHT 180
 #endif
 
 //How big an area to use for Fake Global Illumination.
 #ifndef BlurRadius
 	#define BlurRadius 1
 #endif
+
+
 
 float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 {
@@ -588,7 +596,9 @@ float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 // Author  : Alex Tuduran | Licence: MIT 
 // Minor modifications by Robert Jessop 
 
-
+#ifndef BLUR_DIVIDE
+	#define BLUR_DIVIDE 2
+#endif
 
 texture HBlurTex {
     Width = FAKE_GI_WIDTH ;
@@ -596,14 +606,14 @@ texture HBlurTex {
     Format = RGBA16F;
 };
 
-sampler HBlurSampler {
-    Texture = HBlurTex;
-};
-
 texture VBlurTex {
     Width = FAKE_GI_WIDTH ;
     Height = FAKE_GI_HEIGHT ;
     Format = RGBA16F;
+};
+
+sampler HBlurSampler {
+    Texture = HBlurTex;
 };
 
 sampler VBlurSampler {
@@ -718,7 +728,6 @@ float4 GIFinalVBlurPS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD
 	
 	return color;
 }
-
 	
 // This is copy of reshade's getLinearizedDepth but using POINT sampling (LINEAR interpolation can cause artefacts - thin ghost of edge one radius away.)
 float pointDepth(float2 texcoord)
@@ -753,6 +762,10 @@ float pointDepth(float2 texcoord)
 		return depth;
 }
 
+//These macros allow us to use a float4x4 like an array of up to 16 floats. Saves registers.
+#define AO_MATRIX2(a,b) ao_point##[##a##]##[##b##]
+#define AO_MATRIX(a) (ao_point[(a)/4][(a)%4])
+//#define AO_MATRIX(a) ao_point##[##a##]
 
 float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 {	
@@ -883,13 +896,14 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 	
 	//Fast screen-space ambient occlusion. It does a good job of shading concave corners facing the camera, even with few samples.
 	//depth check is to minimize performance impact areas beyond our max distance, on games that don't give us depth, if AO left on by mistake.
-	if(FAST_AO_POINTS >= 2 && ao_enabled && depth>0 && (depth<ao_fog_fix || debug_mode) && debug_mode != 4) {
+	const uint points = FAST_AO_POINTS;
+	if(points >= 2 && ao_enabled && depth>0 && (depth<ao_fog_fix || debug_mode) && debug_mode != 4) {
 	  
 		// Checkerboard pattern of 1s and 0s ▀▄▀▄▀▄. Single layer of dither works nicely to allow us to use 2 radii without doubling the samples per pixel. More complex dither patterns are noticable and annoying.
 		uint square =  (uint(vpos.x+vpos.y)) % 2;
 				
-		float s[FAST_AO_POINTS*2]; // size must be compile time constant
-						
+		float4x4 ao_point;
+								
 		float max_depth = depth+0.01*ao_max_depth_diff;
 		float min_depth_sq = sqrt(depth)-0.01*ao_max_depth_diff;
 		
@@ -899,9 +913,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 		float2 the_vector;
 		
 		float ao = 0;		
-		if(ao_fast) {
-			const uint points=min(FAST_AO_POINTS,20);
-
+		if(1) {
+			
 			//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.		
 			const float angle = radians(180)/points;
 			[unroll]
@@ -917,130 +930,56 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 				//if(abtest) if(length((the_vector+texcoord-0.5)/BUFFER_PIXEL_SIZE) < 1 ) c=2;
 										
 				//Make area smaller for distant objects
-				the_vector *= ao_fast*(1-depth);
+				the_vector *= (1-depth);
 										
 				//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.
-				s[i] = pointDepth( texcoord+the_vector);
+				AO_MATRIX(i) = pointDepth( texcoord+the_vector);
 				
-				//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
-				s[i] = min( s[i], max_depth );	
+				
+				//AO_MATRIX(i) = min( AO_MATRIX(i), max_depth );	
 			}
+			//If AO_MATRIX(i) is much farther than depth then bring it closer so that one distance point does not have too much effect.
+			ao_point[0] = min(ao_point[0], max_depth);
+			if(points > 4) ao_point[1] = min(ao_point[1], max_depth);
+			if(points > 8) ao_point[2] = min(ao_point[2], max_depth);
+			if(points >12) ao_point[3] = min(ao_point[3], max_depth);
 			
 			const float shape = FLT_EPSILON*ao_shape_modifier; 
 			
 			//Now deal with points to close or to far to affect shade.
 			[unroll]
 			for(i = 0; i<points; i++) {
-				//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
-				if( sqrt(s[i]) < min_depth_sq ) {
-					float opposite = s[(i+points/2)%points];
-					if(points%2) opposite = (opposite + s[(1+i+points/2)%points] ) /2;
+				//If AO_MATRIX(i) is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
+				if( sqrt(AO_MATRIX(i)) < min_depth_sq ) {
+					float opposite = AO_MATRIX((i+points/2)%points);
+					if(points%2) opposite = (opposite + AO_MATRIX((1+i+points/2)%points) ) /2;
 									
 					//If opposite pixel is also too close then set value to depth so we don't cast shade nor shine.
-					if( sqrt(opposite) < min_depth_sq ) s[i] = depth;
-					else s[i] = ( depth*2-opposite );				
+					if( sqrt(opposite) < min_depth_sq ) AO_MATRIX(i) = depth;
+					else AO_MATRIX(i) = ( depth*2-opposite );				
 				}
 			}
-			
-			//Now estimate the local variation - sum of differences between adjacent points.
-			float diff = abs(s[0]-s[points-1]);
-			[unroll]
-			for(i = 0; i<points-1; i++) {			
-				diff = diff + abs(s[i]-s[i+1]);
-			}
-			
-			float variance = diff/(2*points) ;
-					
-			// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
-			
-			variance += shape;
-			
-			[unroll]
-			for(i = 0; i<points; i++) {			
-				uint j = (i+1)%points;
-				// naive algorithm is to just add up all the sample points that cast shade. Instead we interpolate between adjacent points in the circle. Imagine the arc between two ajacent points - we're estimating the fraction of it that is in front of the centre point.
-				float near=min(s[i],s[j]); 
-				float far=max(s[i],s[j]); 
-				
-				//This is the magic that makes shaded areas smoothed instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
-				near -= variance;
-				far  += variance;
-				
-				//Linear interpolation - 
-				float crossing = (depth-near)/(far-near);
-				
-				//If depth is between near and far, crossing is between 0 and 1. If not, clamp it. Then adjust it to be between -1 and +1.
-				crossing = 2*clamp(crossing,0,1)-1;
-				
-				ao += crossing;
-			}
-								
-			// now we know how much the point is occluded. 		
-			ao = ao/points;
-			
-			//Because of our checkerboard pattern it can be too dark in the inner_circle and create a noticable step. This softens the inner circle (which will be darker anyway because outer_circle is probably dark too.)
-			if(square || points==2) ao*=(2.0/3.0);
-		} else {
-			const uint points=min(FAST_AO_POINTS*2,20);
-
-			//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.		
-			const float angle = radians(180)/points;
-			[unroll]
-			for(i = 0; i<points; i++) {			
-				// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
-				// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
-				// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.			
-				float2 outer_circle = (min(.002*points,.01)) * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
-				float2 inner_circle =                   .004 * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
-				the_vector = square ? inner_circle : outer_circle;
-				
-				//Debug: show points shape.
-				//if(abtest) if(length((the_vector+texcoord-0.5)/BUFFER_PIXEL_SIZE) < 1 ) c=2;
-										
-				//Make area smaller for distant objects
-				the_vector *= (1-ao_fast)*(1-depth);
-										
-				//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.
-				s[i] = pointDepth( texcoord+the_vector);
-				
-				//If s[i] is much farther than depth then bring it closer so that one distance point does not have too much effect.
-				s[i] = min( s[i], max_depth );	
-			}
-			
-			const float shape = FLT_EPSILON*ao_shape_modifier; 
-			
-			//Now deal with points to close or to far to affect shade.
-			[unroll]
-			for(i = 0; i<points; i++) {
-				//If s[i] is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
-				if( sqrt(s[i]) < min_depth_sq ) {
-					float opposite = s[(i+points/2)%points];
-									
-					//If opposite pixel is also too close then set value to depth so we don't cast shade nor shine.
-					if( sqrt(opposite) < min_depth_sq ) s[i] = depth;
-					else s[i] = ( depth*2-opposite );				
-				}
-			}
-			
-			//Now estimate the local variation - sum of differences between adjacent points.
-			float diff = abs(s[0]-s[points-1]);
-			[unroll]
-			for(i = 0; i<points-1; i++) {			
-				diff = diff + abs(s[i]-s[i+1]);
-			}
-			
-			float variance = diff/(2*points) ;
-					
-			// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
-			
-			variance += shape;
 						
+			//Now estimate the local variation - sum of differences between adjacent points.
+			float diff = 0;
+			[unroll]
+			for(i = 0; i<points; i++) {	
+				uint j = (i+1)%points;
+				diff = diff + abs(AO_MATRIX(i)-AO_MATRIX(j));
+			}
+			
+			float variance = diff/(2*points) ;
+					
+			// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.
+			
+			variance += shape;
+			
 			[unroll]
 			for(i = 0; i<points; i++) {			
 				uint j = (i+1)%points;
 				// naive algorithm is to just add up all the sample points that cast shade. Instead we interpolate between adjacent points in the circle. Imagine the arc between two ajacent points - we're estimating the fraction of it that is in front of the centre point.
-				float near=min(s[i],s[j]); 
-				float far=max(s[i],s[j]); 
+				float near=min(AO_MATRIX(i),AO_MATRIX(j)); 
+				float far=max(AO_MATRIX(i),AO_MATRIX(j)); 
 				
 				//This is the magic that makes shaded areas smoothed instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
 				near -= variance;
@@ -1053,7 +992,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 				crossing = 2*clamp(crossing,0,1)-1;
 				
 				ao += crossing;
-			}
+			}			
 								
 			// now we know how much the point is occluded. 		
 			ao = ao/points;
@@ -1079,30 +1018,19 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 			
 			// Bounce is subtle effect, we don't want to double time taken by reading as many points again.
 			// Choose two vectors for the bounce, based on closest point. Where two walls meet in a corner this works well.
-			const uint points=min(FAST_AO_POINTS*2,20);
-
+			
 			//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.		
 			const float angle = radians(180)/points;
 			[unroll]
-			for(i = 0; i<points; i+=2) {				
+			for(i = 0; i<points; i+=1) {				
 				const float2 outer_circle = (min(.002*points,.01)) * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
 				const float2 inner_circle =                   .004 * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );					
-				if( s[i] < closest ) {						
-					closest = s[i];					
+				if( AO_MATRIX(i) < closest ) {						
+					closest = AO_MATRIX(i);					
 					the_vector = (square) ? inner_circle : outer_circle;					
 				}
 			}
-			if(ao_fast==0) {
-				for(i = 1; i<points; i+=2) {				
-					const float2 outer_circle = (min(.002*points,.01)) * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
-					const float2 inner_circle =                   .004 * ao_radius/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );					
-					if( s[i] < closest ) {						
-						closest = s[i];					
-						the_vector = (square) ? inner_circle : outer_circle;					
-					}
-				}
-			}
-			
+						
 			//Make area smaller for distant objects
 			the_vector *= (1-depth);
 			
@@ -1131,33 +1059,37 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos : SV_Position, float2 texcoord : Tex
 			
 		}
 	  				
-		bounce = bounce*clamp(ao,0,.5);
-						
-		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
-		if (ao<0) {
-			ao*=ao_shine_strength*.7;
-		}
-		else {
-			bounce = min(c*ao,bounce); // Make sure bounce doesn't make pixel brighter than original.
-			ao *= ao_strength*1.4; // multiply by 1.4 to compensate for the bounce value we're adding
+		bounce = bounce*min(ao,.5);
 			
-		}
-		
 		//prevent AO affecting areas that are white - saturated light areas. These are probably clouds or explosions and shouldn't be shaded.
 		float smoke_fix=max(0,(1-reduce_ao_in_light_areas*length(c)));
-		ao*=smoke_fix;
-		bounce*=smoke_fix;
-			
 		
+		//If ao is negative it's an exposed area to be brightened (or set to 0 if shine is off).
+		if (ao<0) {
+			ao*=ao_shine_strength*.7;			
+			ao*=smoke_fix;
 				
-		//debug Show ambient occlusion mode
-		if(debug_mode==2) c=.5;
+			//debug Show ambient occlusion mode
+			if(debug_mode==2) c=.5;			
+			
+			//apply AO and clamp the pixel to avoid going completely black or white. 
+			c = min( c*(1-ao),  .5*c +0.5  );
+		}
+		else {
+			
+			ao *= ao_strength*1.4; // multiply by 1.4 to compensate for the bounce value we're adding
+			
+			bounce = min(c*ao,bounce); // Make sure bounce doesn't make pixel brighter than original.
+			
+			ao*=smoke_fix;
+							
+			//debug Show ambient occlusion mode
+			if(debug_mode==2) c=.5;
+			
+			//apply AO and clamp the pixel to avoid going completely black or white. 
+			c = clamp( c*(1-ao) + bounce,  0.2*c, c  );
+		}
 		
-		
-		//apply AO and clamp the pixel to avoid going completely black or white. 
-		c = clamp( c*(1-ao) + bounce,  0.2*c, .5*c +0.5  );
-		
-	
 	}	
 	
 	
@@ -1225,7 +1157,6 @@ void fakeGI_VS(in uint id : SV_VertexID, out float4 position : SV_Position, out 
 	} 
 }
 
-
 technique Glamarye_Fast_Effects <
 	ui_tooltip = "Designed for speed and quality, it combines multiple effects in one shader. Probably even faster than your game's built-in post-processing options (turn them off!).\n"
 				 "1. FXAA. Fixes jagged edges. \n"
@@ -1236,6 +1167,7 @@ technique Glamarye_Fast_Effects <
 				 "6. Fake Global Illumination. Approximates ambient light colour in areas of the scene (a bigger area than bounce lighting). This is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required!\n";
 	>
 {	
+
 	pass makeGI
 	{
 		VertexShader = fakeGI_VS;
@@ -1266,16 +1198,15 @@ technique Glamarye_Fast_Effects <
         PixelShader  = VBlurC0PS;
         RenderTarget = VBlurTex;
     }	
+		
+
 	
-		
-		
-		
 	pass HBlurC1R {
         VertexShader = fakeGI_VS;
         PixelShader  = HBlurC1PS;
         RenderTarget = HBlurTex;
     }
-
+	
     pass VBlurC1R {
         VertexShader = fakeGI_VS;
         PixelShader  = VBlurC1PS;
@@ -1331,7 +1262,7 @@ technique Glamarye_Fast_Effects <
         PixelShader  = GIFinalVBlurPS;
         RenderTarget = VBlurTex;
     }
-	
+
 	pass Glamayre
 	{
 		VertexShader = PostProcessVS;
@@ -1339,8 +1270,13 @@ technique Glamarye_Fast_Effects <
 				
 		// Enable gamma correction applied to the output.
 		SRGBWriteEnable = true;
-	}	
+	}		
+	
 }
+
+
+
+
 
 //END OF NAMESPACE
 }
