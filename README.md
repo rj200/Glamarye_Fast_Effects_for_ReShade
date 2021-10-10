@@ -1,11 +1,10 @@
-Glamarye Fast Effects for ReShade (version 3.1)
+
+Glamarye Fast Effects for ReShade (version 3.2)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 3.0:** More tweaks to Fake GI - improving its performance. Improved FXAA quality. Improved sharpen quality. Simplified main settings. Added dropdown to select from two AO quality levels. 
-
-**New in 3.1:** Option to Reduce AO in bright areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire.
+**New in 3.2:** Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia - looks like too many registers so need to simplify.
 
 Author: Robert Jessop 
 
@@ -88,14 +87,13 @@ Effects Intensity
 
 **AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas. Tip: if increasing also increase FAST_AO_POINTS preprocessor definition for higher quality.
 
-**AO Quality** - Quality mode is slower, but recommended if using a high AO strength setting. Quality mode uses twice as many depth samples than Performance mode. 
-
 **AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
 **GI strength** - Fake Global Illumination strength. High values can make colours too vivid.
 
+**AO Quality** - Due to compatibility with older drivers and D3D9 games this option has been removed - however you can still increase quality by changing the preprocessor definition FAST_AO_POINTS (defauly is 6, try 12 for best quality.)
 
 Output mode
 -----------
@@ -135,7 +133,7 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **Fake GI contrast** - Increases contrast of image when Fake GI is enabled. <= 0.5 recommended.
 
-**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode (this number is doubled in quality mode). The is a more fine grained speed vs quality knob; higher is better but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points. If you break it by setting an invalid value you may need to go into the game's directory and edit the value in ReShadePreset.ini to fix it.
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 3-12 is the sensible range - algorithm isn't designed to take advantage of more points. 
 
 Tips
 ----
@@ -254,6 +252,8 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+3.2 (x) Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia  - looks like too many registers so need to simplify. Change AO to use float4x4 to sav intructions and registers.
+
 3.1 (+) Option to Reduce AO in bright areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire.
 
 3.0 (+) More tweaks to Fake GI - improving performance and smoothness. Improved FXAA quality (fixed rare divide by zero and fixed subtle issue where Fake GI combined badly with FXAA). Improved sharpen quality (better clamp limits). Simplified main settings. Added dropdown to select from two AO quality levels. Bounce tweaked and moved bounce strength to advanced settings (it is now equal to ao_strength by default - having them different is usually worse.)
@@ -278,7 +278,7 @@ Thank you:
 
 Alex Tuduran for the blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
-macron & AlucardDH for bug reports.
+macron, AlucardDH, NikkMann, Mirt81 for bug reports.
 
 ReShade devs for ReShade.
 
