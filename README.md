@@ -1,14 +1,14 @@
-
-Glamarye Fast Effects for ReShade (version 3.2)
+Glamarye Fast Effects for ReShade (version 4.0)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 3.2:** Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia - looks like too many registers so need to simplify.
+**New in 4.0:** Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
 Author: Robert Jessop 
 
 License: MIT
+
 
 About
 -----
@@ -28,18 +28,14 @@ Glamarye Fast Effects combines several fast versions of common postprocessing en
 
 Tested in Toussaint :)
 
-![Screenshot](v2.0%20max%20settings.jpg "Beauclair, The Witcher 3")
+![Screenshot](high%20strength%20v4.0.png "Beauclair, The Witcher 3")
 
-This was taken in version 2.0 with maximum strength settings to make effects more clear. Default settings are more subtle than this.
+This was taken in version 4.0 with strengths all set to 1 to make effects more clear. Default settings are more subtle than this.
 
-Comparison (version 2.0)
+Comparison (version 4.0)
 ----------
 
-Tip: Ctrl+click the links to open each image in a new tab.
-
-[This shader v2.0, default settings](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20defaults.jpg) 
-
-[No postprocessing](https://raw.githubusercontent.com/rj200/Glamarye_Fast_Effects_for_reshade/main/v2.0%20original%20for%20comparison.jpg)
+[Comparison of v4.0 (faster) and Witcher 3's builtin post-processing (slower)](https://imgsli.com/Nzg1NjA/)
 	
 Setup
 -----
@@ -47,28 +43,44 @@ Setup
 1. Install ReShade and configure it for your game (See https://reshade.me)
 2. Copy Shaders/Glamarye_Fast_Effects.fx to ReShade's Shaders folder within the game's folder (e.g. C:\Program Files (x86)\Steam\steamapps\common\The Witcher 3\bin\x64\reshade-shaders\Shaders)
 3. Run the game
-4. Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options (if it has them).
+4. **Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options** (if it has them).
 	- Some games do not have individual options, but have a single "post-processing" setting. Setting that to the lowest value will probably disable them all.
 5. Call up ReShade's interface in game and enable Glamarye_Fast_Effects ("Home" key by default)
-6. Check if depth buffer is working and set up correctly. If not, disable the Depth of field and Ambient Occlusion effects for a small performance improvement. 
-	- Check ReShade's supported games list to see any notes about depth buffer first. 
-	- Check in-game (playing, not in a menu or video cutscene):
-	- Use the built-in "Debug: show depth buffer" to check it's there and "Debug: show depth and FXAA edges" to check it's aligned.		
-	- Close objects should be black and distant ones white. It should align with shapes in the image.
-		* If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
-			- If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.	
-	- If it depth buffer work in all areas of gameplay, then you probably want to enable "Detect menus & videos" too.
+6. Check if depth buffer is working and set up correctly. If it's not available then disable the Depth of field and Ambient Occlusion effects for a small performance improvement. 	
+	- Use the built-in "Debug: show depth buffer" to check it's there. Close objects should be black and distant ones white.
+	- Use "Debug: show depth and FXAA edges" to check it's aligned.
+		
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
-	
-GShade: I have heard it works with GShade, but you might need to add "ReShade.fxh" and "ReShadeUI.fxh" from ReShade to your shaders directory too if you don't have them already.
+
+Troubleshooting
+-----------
+
+* For help installing and using ReShade see: (https://www.youtube.com/playlist?list=PLVJvgoR2kklkkDQxYjBsbR2y-ieWmgSZt) and for more troubleshooting (https://www.youtube.com/watch?v=hYUiWfvyafQ)
+* Game crashes: disable anything else that also displays in game, such as Razer's FPS counter, or Steam's overlay. Some games have issues when more than one program is hooking DirectX.
+* If you get "error X4505: maximum temp register index exceeded" on DirectX 9.0 games then in ReShade set FAST_AO_POINTS lower (4 should work).
+* Fast Ambient Occlusion
+	- If you see shadows in fog, mist, explosions etc then try tweaking **Reduce AO in bright areas** and **AO max distance** under Advanced Tuning and configuration.
+	- If shadows in the wrong places then depth buffer needs configuring (see below)
+	- If you see other artefacts (e.g. shadows look bad) then options are:
+		- turn down the strength
+		- increase the quality by settings FAST_AO_POINTS to 8 or 12.
+		- Try tweaking the AO options in Advanced Tuning and configuration.
+* Depth buffer issues:
+	- Check ReShade's supported games list to see any notes about depth buffer first. 
+	- Check in-game (playing, not in a menu or video cutscene):
+	- If it's missing or looks different it may need configuration
+		- Use right most tab in Reshade and try to manually find the depth buffer in the list of possible buffers.
+		- Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
+* No effects do anything. Reset settings to defaults. If using "Detect menus & videos" remember it requires correct depth buffer - depth buffer is just black no effects are applied.
+* GShade: I have heard it works with GShade, but you might need to add "ReShade.fxh" and "ReShadeUI.fxh" from ReShade to your shaders directory too if you don't have them already.
 		
 Enabled/disable effects
 -----------------------
 	
 **Fast FXAA** - Fullscreen approximate anti-aliasing. Fixes jagged edges.
 
-**Intelligent Sharpen** - Sharpens details but not straight edges (avoiding artefacts). It works with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic.
+**Intelligent Sharpen** - Sharpens details but not straight edges (avoiding artefacts). It works with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic. 
 
 **Fast Ambient Occlusion (AO) (requires depth buffer)** - Ambient occlusion shades places that are surrounded by points closer to the camera. It's an approximation of the reduced ambient light reaching occluded areas and concave shapes (e.g. under grass and in corners.)
 
@@ -76,14 +88,16 @@ Enabled/disable effects
 
 **Depth of Field (DOF) (requires depth buffer)** - Softens distant objects subtly, as if slightly out of focus. 
 
-**Detect menus & videos (requires depth buffer)** - Skip all processing if depth value is 0 or 1 (per pixel). Full-screen videos and 2D menus probably do not need anti-aliasing nor sharpenning, and may lose worse with them. Only enable if depth buffer always available in gameplay!
+**Detect menus & videos (requires depth buffer)** - Skip all processing if depth value is 0 (per pixel). Sometimes menus use depth 1 - in that case use Detect Sky option instead. Full-screen videos and 2D menus do not need anti-aliasing nor sharpenning, and may lose worse with them. Only enable if depth buffer always available in gameplay!
+
+**Detect sky** - Skip all processing if depth value is 1 (per pixel). Background sky images might not need anti-aliasing nor sharpenning, and may look worse with them. Only enable if depth buffer always available in gameplay!
     
 **Fake Global Illumination** - Approximates ambient light colour in areas of the scene (a bigger area than bounce lighting). This is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required!
 
 Effects Intensity
 -----------------
 
-**Sharpen strength** - For high values I suggest depth of field too.
+**Sharpen strength** - For values > 0.5 I suggest depth of field too. Values > 1 only recommended if you can't see individual pixels (i.e. high resolutions on small or far away screens.)
 
 **AO strength** - Ambient Occlusion. Higher mean deeper shade in concave areas. Tip: if increasing also increase FAST_AO_POINTS preprocessor definition for higher quality.
 
@@ -91,7 +105,7 @@ Effects Intensity
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
-**GI strength** - Fake Global Illumination strength. High values can make colours too vivid.
+**GI strength** - Fake Global Illumination intensity. High values can make colours too vivid.
 
 **AO Quality** - Due to compatibility with older drivers and D3D9 games this option has been removed - however you can still increase quality by changing the preprocessor definition FAST_AO_POINTS (defauly is 6, try 12 for best quality.)
 
@@ -102,15 +116,18 @@ Output mode
 
 **Debug: show FXAA edges** - Highlights edges that are being smoothed by FXAA. The brighter green the more smoothing is applied. Don't worry if moderate smoothing appears where you don't think it should - sharpening will compensate.
 
-**Debug: show ambient occlusion shade** - Shows amount of shading AO is applying against a grey background. Use this if tweaking AO settings to help get them just right see the effect of each setting clearly. However, don't worry if it doesn't look perfect - it exaggerates the effect and many issues won't be noticable in the final image. The best final check after changing settings is to go back to normal but with AO strength at max.
+**Debug: show AO shade & GI colour** - Shows amount of shading AO, bounce and Fake GI is adding, against a grey background. Use this if tweaking AO settings to help get them just right see the effect of each setting clearly. However, don't worry if it doesn't look perfect - it exaggerates the effect and many issues won't be noticable in the final image. The best final check is in normal mode.
 
 **Debug: show depth buffer** - This image shows the distance to each pixel. However not all games provide it and there are a few different formats they can use. Use to check if it works and is in the correct format. Close objects should be black and distant ones white. If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer. If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.		
 
 **Debug: show depth and edges** - Shows depth buffer and highlights edges - it helps you check if depth buffer is correctly aligned with the image. Some games (e.g. Journey) do weird things that mean it's offset and tweaking ReShade's depth buffer settings might be required. It's as if you can see the Matrix.
 
-**Debug: show GI colour** - Global Illumination: Shows the amount of extra light reflected off each pixel.
+**Debug: show GI area colour** - Global Illumination: Shows the colour of the light from the area affecting to each pixel.
 
-**Debug: show GI ambient light** Global Illumination: Shows the colour of ambient light in each area of the image.
+**Debug: show GI ambient light** Global Illumination: Shows the brightness of the bigger each area - ratio between this and color helps decide overall brightness.
+
+**Debug: show bounce light** - Shows what the bounce lightling effect is adding and where.
+
 
 Advanced Tuning and Configuration
 ------------------------
@@ -131,13 +148,16 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **FXAA bias** - Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. This FXAA algorithm is designed for speed and doesn't look as far along the edges as others - for best quality you might want turn it off and use a different shader, such as SMAA.
 
-**Fake GI contrast** - Increases contrast of image when Fake GI is enabled. <= 0.5 recommended.
+**Fake GI colour/light balance** - Fake GI balance. Fake GI has two parts - both controled by GI strength. -1 means only bounce colour, +1 means only change brightness. If you get artefacts with an incorrect band of shadow making this negative might help.
 
-**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 3-12 is the sensible range - algorithm isn't designed to take advantage of more points. 
+**Fake GI far/near ambient light ratio** - For Fake GI, ambient light at each pixel is estimated from both wide area colour, and surrounding pixels. This changes the weight of each. Higher generally helps contrast but too high looks unrealistic. 
+
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 
 
 Tips
 ----
 
+- Turn up the strength settings, to taste. The defaults are conservative.
 - Check if game provides depth buffer! If not turn of depth of field, ambient occlusion and detect menus for better performance (they won't affect the image if left on by mistake).
 - If depth is always available during gameplay then enabling Detect menus and videos is recommended to make non-gamplay parts clearer. 
 - If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
@@ -146,7 +166,7 @@ Tips
 - You can mix and match with in-game options or other ReShade shaders, though you lose some the performance benefits of a combined shader. Make sure you don't have two effects of the same type enabled.
 - Don't set FAST_AO_POINTS higher than 12 - the algorithm is designed for few points and won't use the extra points wisely.
 - Experiment!
-	* What strength settings looks best may depend on the game, and on your monitor or TV's settings (your TV's "game mode" may have some built-in sharpening for example).
+	* What strength settings looks best may depend on the game, your monitor, and its settings (your TV's "game mode" may have some built-in sharpening for example).
 	* Depth of field, AO Shine, and Fake Glboal Illumination are really a matter of personal taste. 
 	* Don't be afraid to try lower FAST_AO_POINTS (minimum: 2) and turn off bounce lighting if you want really fast AO. Even very low quality AO can make the image look better (but keep strength <= 0.5).
 	* Be careful with the advanced ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. 
@@ -240,17 +260,19 @@ Amazingly, this gives quite decent results even with very few points in the circ
 There are two optional variations that change the Fast Ambient Occlusion algorithm:
 
 1. Shine. Normally AO is used only to make pixels darker. With the AO Shine setting (which is set quite low by default), we allow AO amount to be negative. This brightens convex areas (corners and bumps pointing at the camera.) Not super realistic but it really helps emphasise the shapes. This is basically free - instead of setting negative AO to zero we multiply it by ao_shine_strength.
-2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We want to find a point on the adjacent surface to sample the colour of. To do that we take the point in the circle closest to the camera, and the one opposite - one is probably the same as the centre and one an adjacent surface. We take the minimum of the two samples values to approximate the nearby surface's colour, erring on the side of less light. Next we estimate the light in the area, using the maximum of our samples and c. This is used to adjust c to estimate how much light it will reflect. We multiply this modified c with the bounce light, to get the light bouncing of the nearby surface, to c, then to the camera. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
+2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We use same wide area brightness from the Fake GI algorithm to estimate the ambient light and therefore the unlit colour of the pixel, and therefore how much light it will reflect. We blur the image to get the average light nearby. We multiply the unlit pixel colour with the nearby light to get the light bounced. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
 
 Fake Global Illumination is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we blur the main image to get the overall colour of light in each area. We also blur the maximum of red, green and blue to estimate the amount of ambient light in the area - this is used to help guess if current pixel's true surface colour -  is likely a light surface in shadow, or a dark surface in the light? This surface colour is multiplied by the overall light and added to the pixel. The pixel is darkenned to keep the overall image about the same brightness. We also blur the image again to get a larger ambient light area. The ratio of of two blurs is used as a multiplier for the pixel brightness - this gives some variation and increases the contrast between light and dark areas. Overall the image appears less flat - even if the illumination isn't always realistic, the subtle variations in shade help make the image seem more real.
 
 **Ideas for future improvement**
 
-Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
+- Stop improving this a start playing the games again!
 
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+4.0 (+) Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
 3.2 (x) Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia  - looks like too many registers so need to simplify. Change AO to use float4x4 to sav intructions and registers.
 
@@ -276,9 +298,9 @@ Auto-tuning for AO - detect fog, smoke, depth buffer type, and adapt.
 
 Thank you:
 
-Alex Tuduran for the blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
+Alex Tuduran for the previous blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
-macron, AlucardDH, NikkMann, Mirt81 for bug reports.
+macron, AlucardDH, NikkMann, Mirt81, distino for bug reports.
 
 ReShade devs for ReShade.
 
@@ -286,3 +308,4 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
+
