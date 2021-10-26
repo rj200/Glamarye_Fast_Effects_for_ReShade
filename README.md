@@ -3,6 +3,8 @@ Glamarye Fast Effects for ReShade (version 4.0)
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
+**New in 4.1:** Fixed bug affecting AO quality for some FAST_AO_POINTS. Improved variance calculation for AO. Fixed compiler warnings.
+
 **New in 4.0:** Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
 Author: Robert Jessop 
@@ -271,6 +273,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+4.1 (x) Fixed bug affecting AO quality for some FAST_AO_POINTS. Improved variance calculation for AO. Fixed compiler warnings.
 
 4.0 (+) Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
