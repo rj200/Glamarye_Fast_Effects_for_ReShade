@@ -2,10 +2,12 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 4.0)
+Glamarye Fast Effects for ReShade (version 4.1)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
+
+**New in 4.1:** Fixed bug affecting AO quality for some FAST_AO_POINTS. Fixed compiler warnings.
 
 **New in 4.0:** Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
@@ -285,6 +287,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+4.1 (x) Fixed bug affecting AO quality for some FAST_AO_POINTS. Fixed compiler warnings.
+
 4.0 (+) Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
 3.2 (x) Make quality setting Preprocessor only as someone reported compatility issues with Prince of Persia  - looks like too many registers so need to simplify. Change AO to use float4x4 to sav intructions and registers.
@@ -313,7 +317,7 @@ Thank you:
 
 Alex Tuduran for the previous blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
-macron, AlucardDH, NikkMann, Mirt81, distino for bug reports.
+macron, AlucardDH, NikkMann, Mirt81, distino, vetrogor, for bug reports.
 
 ReShade devs for ReShade.
 
@@ -634,17 +638,15 @@ float4 bigBlur(sampler s, in float4 pos, in float2 texcoord, in float2 step  ) {
 	
 	float4 color = 0;
 	
-	const uint steps=5;
-	
 	//The numbers are from pascals triange. You could add more steps and/or change the row used to change the shape of the blur. using float4 because for w we want brightness over a larger area - it's basically two different blurs in one.
-	//float4 w[steps] = {float4(28,28,28,1 ),float4(56,56,56,1 ),float4(70,70,70,1 ),float4(56,56,56,1 ),float4(28,28,28,1 )};
 	
 	//Slightly unusual weights we want to give a bit less to the centre because the effect we want is light bouncing from nearby - it it's easy to just overemphasise local colour instead.
-	float4 w[steps] = {float4(1,1,1,2 ),float4(3,3,3,2 ),float4(3,3,3,1 ),float4(3,3,3,2 ),float4(1,1,1,2 )};
+	float4 w[5] = {float4(1,1,1,2 ),float4(3,3,3,2 ),float4(3,3,3,1 ),float4(3,3,3,2 ),float4(1,1,1,2 )};
 	float4 sum=0;
 		
-	float2 offset=-floor(steps/2)*step ;
-	for( uint i=0; i<steps; i++) {
+	float2 offset=-2.0*step ;
+	[unroll]
+	for( uint i=0; i<5; i++) {
 		float4 c = tex2D(s, texcoord + offset);
 		offset+=step;
 		c*=w[i];
@@ -879,7 +881,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		float the_vector_len=ao_radius* (1-depth);			
 		
 		
-				
+		[unroll]		
 		for(i = 0; i< points; i++) {							
 			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
 			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
@@ -910,45 +912,71 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		
 		const float shape = FLT_EPSILON*ao_shape_modifier; 
 		
+		[unroll]
 		for(i = 0 ; i<(points+3)/4; i++) {
 			ao_point[i] = fixDepth4(ao_point[i]);
 			ao_point[i] = (ao_point[i] < min_depth_sq) ? -depth : min(ao_point[i], max_depth);
 		}
 		
+		
 		float4x4 opposite;
 		if(FAST_AO_POINTS==8) {
 			opposite[0] = ao_point[1];
 			opposite[1] = ao_point[0];
-		}
+		}		
 		else if(FAST_AO_POINTS==4) {
 			opposite[0] = ao_point[0].barg;			
 		}
 		else {
+			[unroll]
 			for(i = 0; i<points; i++) {
 				//If AO_MATRIX(i) is much closer than depth then it's a different object and we don't let it cast shadow - instead predict value based on opposite point(s) (so they cancel out).
 				opposite[i/4][i%4] = AO_MATRIX((i+points/2)%points);
 				if(points%2) opposite[i/4][i%4] = (opposite[i/4][i%4] + AO_MATRIX((1+i+points/2)%points) ) /2;			
 			}
 		}
+		[unroll]
 		for(i = 0 ; i<(points+3)/4; i++) {
-			ao_point[i] = (ao_point[i] >= 0) ? ao_point[i] : depth*2-abs(opposite[i]);
-			adj_point[i].yzw = ao_point[i].xyz;
-			if(i>0) adj_point[i].x = ao_point[i-1].w;
+			ao_point[i] = (ao_point[i] >= 0) ? ao_point[i] : depth*2-abs(opposite[i]);			
+		}
+		
+		if(FAST_AO_POINTS==8) {
+			adj_point[0].yzw = ao_point[0].xyz;			
+			adj_point[1].yzw = ao_point[1].xyz;
+			adj_point[0].x = ao_point[1].w;			
+			adj_point[1].x = ao_point[0].w;
+		}
+		else if(FAST_AO_POINTS==4) {
+			adj_point[0] = ao_point[0].wxyz;			
+		} else {
+			adj_point[i-1]=ao_point[i-1];  //For not 8 nor 8 initialize to the same we don't mess up the variance.
+			[unroll]
+			for(i = 0; i<points; i++) {
+				adj_point[i/4][i%4] = AO_MATRIX((i+1)%points);
+			}
 		}	
-		adj_point[0].x = AO_MATRIX(points-1);
-		
-		
-						
-		//Now estimate the local variation - sum of differences between adjacent points.
-				
-		float variance = dot(mul(abs(ao_point-adj_point),float4(1,1,1,1)),float4(1,1,1,1)/(2*points));
 								
+		//Now estimate the local variation - sum of differences between adjacent points.
+			
+		//This uses fewer instruction but causes a compiler warning. I'm going with the clearer loop below.
+		//float variance = dot(mul((ao_point[i]-adj_point[i])*(ao_point[i]-adj_point[i]),float4(1,1,1,1)),float4(1,1,1,1)/(2*points));
+		
+		float4 variance = 0; 
+		
+		for(i = 0 ; i<(points+3)/4; i++) {
+			variance += (ao_point[i]-adj_point[i])*(ao_point[i]-adj_point[i]);						
+		}		
+		
+		variance = sqrt(dot(variance, float4(1,1,1,1)/(2*points)));
+		
+		
 		// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.			
 		variance += shape;
 		
 		float4 ao4=0;
 		
-		for(i = 0 ; i<(points+3)/4; i++) {
+		[unroll]
+		for(i = 0 ; i<(points)/4; i++) {
 					
 			float4 near=min(ao_point[i],adj_point[i]); 
 			float4 far=max(ao_point[i],adj_point[i]); 
@@ -963,8 +991,29 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			//If depth is between near and far, crossing is between 0 and 1. If not, clamp it. Then adjust it to be between -1 and +1.
 			crossing = 2*clamp(crossing,0,1)-1;
 				
-			ao4 += sign(adj_point[i])*crossing;
+			ao4 += crossing;
 		}
+		if(points%4) {
+			float4 near=min(ao_point[i],adj_point[i]); 
+			float4 far=max(ao_point[i],adj_point[i]); 
+				
+			//This is the magic that makes shaded areas smoothed instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
+			near -= variance;
+			far  += variance;
+				
+			//Linear interpolation - 
+			float4 crossing = (depth-near)/(far-near);
+				
+			//If depth is between near and far, crossing is between 0 and 1. If not, clamp it. Then adjust it to be between -1 and +1.
+			crossing = 2*clamp(crossing,0,1)-1;
+			
+			if(points%4==3) crossing.w=0;
+			else if(points%4==2) crossing.zw=0;
+			else if(points%4==1) crossing.yzw=0;
+				
+			ao4 += crossing;
+		}
+		
 		ao = dot(ao4, float4(1,1,1,1)/points);			  
 	
 		//Weaken the AO effect if depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.	
@@ -973,9 +1022,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		
 		//Because of our checkerboard pattern it can be too dark in the inner_circle and create a noticable step. This softens the inner circle (which will be darker anyway because outer_circle is probably dark too.)
 		if(square || points==2) ao*=(2.0/3.0);
-	
 		
-			
+		//debug Show ambient occlusion mode
 		if(debug_mode==2 ) c=.25;
 	}
 	float4 gi=0;
@@ -1002,7 +1050,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			bounce=unlit_c2*max(0,2*bounce-c);										
 	} 
 	  			
-		bounce = bounce*ao_strength*bounce_multiplier*min(ao,.5);
+	bounce = bounce*ao_strength*bounce_multiplier*min(ao,.5);
 	
 	if(ao!=0) {
 		//prevent AO affecting areas that are white - saturated light areas. These are probably clouds or explosions and shouldn't be shaded.
@@ -1014,22 +1062,19 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			ao*=ao_shine_strength*.5;			
 			ao*=smoke_fix;
 				
-			//debug Show ambient occlusion mode
-			//if(debug_mode==2 ) c=.2;			
+					
 			
 			//apply AO and clamp the pixel to avoid going completely black or white. 
 			c = min( c*(1-ao),  .5*c +0.5  );
 		}
 		else {
 			
-			ao *= ao_strength*2; // multiply by 1.4 to compensate for the bounce value we're adding
+			ao *= ao_strength*1.8; // multiply to compensate for the bounce value we're adding
 			
 			bounce = min(c*ao,bounce); // Make sure bounce doesn't make pixel brighter than original.
 			
 			ao*=smoke_fix;
-							
-			//debug Show ambient occlusion mode
-			//if(debug_mode==2 ) c=.2;
+			
 			
 			//apply AO and clamp the pixel to avoid going completely black or white. 
 			c = clamp( c*(1-ao) + bounce,  0.2*c, c  );
