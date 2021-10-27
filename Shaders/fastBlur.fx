@@ -38,9 +38,10 @@ namespace fastblur {
 
 
 
+
 uniform float fast_blur_size < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Fast Blur";
-	ui_min = 0; ui_max = 1.5; ui_step = .1;	
+	ui_min = 0; ui_max = 1.5; ui_step = .01;	
 	ui_tooltip = "For an extra big blur set preprocessor definition FAST_BLUR_SCALE to an integer bigger than 1. High values of for FAST_BLUR_SCALE might only look right with fast_blur_size=1.";
 	ui_label = "Fast Blur size";
 > = 1;
@@ -118,6 +119,12 @@ float4 fastBlur1_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) 
 	return fastBlur(samplerColor, pos, texcoord+halfpixel, float2(5,2) );
 }
 
+float4 fastBlur1b_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
+{
+	
+	return fastBlur(VBlurSampler, pos, texcoord+halfpixel, float2(5,2) );
+}
+
 float4 fastBlur2_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
 {
 	
@@ -137,8 +144,12 @@ float4 fastBlur4_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) 
 }
 
 
-float3 copy_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
-	return tex2D(VBlurSampler, texcoord).rgb;	
+float4 copy_VBlurSampler_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+	return tex2D(VBlurSampler, texcoord);	
+}
+
+float4 copy_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR {
+	return tex2D(samplerColor, texcoord);	
 }
 
 
@@ -146,6 +157,43 @@ technique fastblur <
 	ui_tooltip = "Big and fast blur.\n\nFor an extra big blur set preprocessor definition FAST_BLUR_SCALE to an integer bigger than 1. High values of for FAST_BLUR_SCALE might only look right with fast_blur_size=1.";
 	>
 {	
+  #if FAST_BLUR_SCALE > 2 
+	pass  {
+        VertexShader = PostProcessVS;
+        PixelShader  = copy_PS;
+        RenderTarget = VBlurTex;
+    }
+	
+	pass  {
+        VertexShader = PostProcessVS;
+        PixelShader  = fastBlur1b_PS;
+        RenderTarget = HBlurTex;
+    }
+		
+    pass  {
+        VertexShader = PostProcessVS;
+        PixelShader  = fastBlur2_PS;
+        RenderTarget = VBlurTex;
+    }
+	
+	pass  {
+        VertexShader = PostProcessVS;
+        PixelShader  = fastBlur3_PS;
+        RenderTarget = HBlurTex;
+    }
+	
+    pass  {
+        VertexShader = PostProcessVS;
+        PixelShader  = fastBlur4_PS;
+        RenderTarget = VBlurTex;
+    }
+	
+	pass  {
+        VertexShader = PostProcessVS;
+        PixelShader  = copy_VBlurSampler_PS;
+        SRGBWriteEnable = true;
+    }
+  #else
 	pass  {
         VertexShader = PostProcessVS;
         PixelShader  = fastBlur1_PS;
@@ -169,6 +217,7 @@ technique fastblur <
         PixelShader  = fastBlur4_PS;
         SRGBWriteEnable = true;
     }
+  #endif
 }
 
 
