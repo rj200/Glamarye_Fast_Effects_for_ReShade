@@ -2,7 +2,7 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 4.1)
+Glamarye Fast Effects for ReShade (version 4.1.1)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
@@ -286,6 +286,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+4.1.1 (x) Fixed typo that caused failure on older versions of ReShade (though current version 4.9.1 was okay)
 
 4.1 (x) Fixed bug affecting AO quality for some FAST_AO_POINTS. Fixed compiler warnings.
 
