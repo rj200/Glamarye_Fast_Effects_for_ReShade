@@ -627,7 +627,7 @@ float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 	c = tex2D(samplerColor, texcoord);
 	
 	//w, min+max colour is used later to help estimate the amount of ambient light in the area.
-	c.w= c.w=max(c.r,max(c.g,c.b)) + min(c.r,min(c.g,c.b));
+	c.w = max(c.r,max(c.g,c.b)) + min(c.r,min(c.g,c.b));
 			
 	return c;
 }
