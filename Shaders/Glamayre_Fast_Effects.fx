@@ -2,10 +2,12 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 4.2)
+Glamarye Fast Effects for ReShade (version 4.2.1)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
+
+**New in 4.2.1** In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
 
 **New in 4.2:** Improved quality of Fake Global Illumination, and clearer settings for it. Tweaked defaults.
 
@@ -32,7 +34,7 @@ Glamarye Fast Effects combines several fast versions of common postprocessing en
 	
 1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed so smoothly.
 2. Intelligent Sharpening. Improves clarity of texture details.
-3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.4. 
+3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark. 
 4. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
 5. Detect Menus and Videos. Depending on how the game uses the depth buffer it may be possible to detect when not in-game and disable the effects.
 6. Detect Sky. Depending on how the game uses the depth buffer it may be possible to detect background images behind the 3D world and disable effects for them.
@@ -50,7 +52,7 @@ This was taken in version 4.2 with strengths all set to 1 to make effects more c
 Comparison (version 4.2)
 ----------
 
-[Comparison of v4.2 (faster) default, max, none, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/Nzk3OTk/)
+[Comparison of v4.2 default, max, none, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/Nzk3OTk/)
 	
 Setup
 -----
@@ -134,13 +136,13 @@ Fake Global Illumination
 
 These only work if you are using the _with Fake GI_ version of the shader.
 
-**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image.
+**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. Greater than 1 may look unrealistic.
 
 **Fake GI saturation** - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
 
-**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original.
+**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. Greater than 1 may look unrealistic.
 
-**AO Bounce multiplier** - When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading.
+**AO Bounce multiplier** - When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1.
 
 Output modes
 -----------
@@ -300,6 +302,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 **History**
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+4.2.1 (+) In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
 
 4.2 (+) Improved quality of fake global illumination, and clearer settings for it. Tweaked defaults.
 
@@ -484,9 +488,9 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 
 uniform float gi_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
-	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
+	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
     ui_label = "Fake GI strength";
-    ui_tooltip = "Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image.";
+    ui_tooltip = "Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. Greater than 1 may look unrealistic.";
 > = .5;
 
 uniform float gi_saturation < __UNIFORM_SLIDER_FLOAT1
@@ -498,8 +502,8 @@ uniform float gi_saturation < __UNIFORM_SLIDER_FLOAT1
 
 uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Fake Global Illumination (with_Fake_GI version only)";
-	ui_min = 0; ui_max = 1; ui_step = 0.01;
-	ui_tooltip = "Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original.";
+	ui_min = 0; ui_max = 2; ui_step = 0.01;
+	ui_tooltip = "Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. Greater than 1 may look unrealistic.";
 	ui_label = "Fake GI contrast";
 > = 0.5;
 
@@ -507,7 +511,7 @@ uniform float bounce_multiplier < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
     ui_label = "AO Bounce multiplier";
-    ui_tooltip = "When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. ";
+    ui_tooltip = "When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1.";
 > = 1;
 
 
@@ -731,7 +735,8 @@ float4 bigBlur(sampler s, in float4 pos, in float2 texcoord, in float2 step  ) {
 	//The numbers are from pascals triange. You could add more steps and/or change the row used to change the shape of the blur. using float4 because for w we want brightness over a larger area - it's basically two different blurs in one.
 	
 	//Slightly unusual weights we want to give a bit less to the centre because the effect we want is light bouncing from nearby - it it's easy to just overemphasise local colour instead.
-	float4 w[5] = {float4(1,1,1,2 ),float4(3,3,3,2 ),float4(3,3,3,1 ),float4(3,3,3,2 ),float4(1,1,1,2 )};
+	float4 w[5] = {float4(1,1,1,2 ),float4(2,2,2,2 ),float4(3,3,3,1 ),float4(2,2,2,2 ),float4(1,1,1,2 )};
+	
 	float4 sum=0;
 		
 	float2 offset=-2.0*step ;
@@ -1146,8 +1151,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		lit_c =lit_c*lerp(1,sqrt(length(c))/sqrt(length(gi.rgb)), gi_contrast*.5);
 				
 		// limit change to avoid problems with image
-		c = clamp(lit_c, max(c*.7,min(c,0.008)) , min(c*1.5,(c+1)/2));
-				
+		c = clamp(lit_c, min(c,0.008) , (c+1)/2);
+						
 		if(debug_mode==5) c=gi.rgb;	
 		if(debug_mode==6) c=gi.w;	  
 	}
