@@ -2,14 +2,12 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 4.1.1)
+Glamarye Fast Effects for ReShade (version 4.2)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 4.1:** Fixed bug affecting AO quality for some FAST_AO_POINTS. Fixed compiler warnings.
-
-**New in 4.0:** Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
+**New in 4.2:** Improved quality of Fake Global Illumination, and clearer settings for it. Tweaked defaults.
 
 Author: Robert Jessop 
 
@@ -34,23 +32,25 @@ Glamarye Fast Effects combines several fast versions of common postprocessing en
 	
 1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed so smoothly.
 2. Intelligent Sharpening. Improves clarity of texture details.
-3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.
-4. Bounce lighting. A very fast short-range indirect lighting implementation that gives surfaces some coloured light reflected from nearby. It makes colours and shade much more realistic than Ambient Occlusion alone.
-5. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
-6. Fake Global Illumination. Attempts to look like fancy GI shaders but using a very simple 2D approximation instead. Not the most realistic solution but very fast. It makes the lighting look less flat; you can even see bright colours reflecting off other surfaces in the area. 
+3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark.4. 
+4. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
+5. Detect Menus and Videos. Depending on how the game uses the depth buffer it may be possible to detect when not in-game and disable the effects.
+6. Detect Sky. Depending on how the game uses the depth buffer it may be possible to detect background images behind the 3D world and disable effects for them.
+7. Fake Global Illumination. Attempts to look like fancy GI shaders but using a very simple 2D approximation instead. Not the most realistic solution but very fast. It makes the lighting look less flat; you can even see bright colours reflecting off other surfaces in the area. 
+8. Bounce lighting. A very fast short-range indirect lighting implementation that gives surfaces some coloured light reflected from nearby. It makes colours and shade much more realistic than Ambient Occlusion alone.
 	
 3, 4 & 5 require depth buffer access.
 
-Tested in Toussaint :)
+Tested in Toussaint (and other places and games.)
 
-![Screenshot](high%20strength%20v4.0.png "Beauclair, The Witcher 3")
+![Screenshot](glamayre%204.2%20max.png "Beauclair, The Witcher 3")
 
-This was taken in version 4.0 with strengths all set to 1 to make effects more clear. Default settings are more subtle than this.
+This was taken in version 4.2 with strengths all set to 1 to make effects more clear. Default settings are more subtle than this.
 
-Comparison (version 4.0)
+Comparison (version 4.2)
 ----------
 
-[Comparison of v4.0 (faster) and Witcher 3's builtin post-processing (slower)](https://imgsli.com/Nzg1NjA/)
+[Comparison of v4.2 (faster) default, max, none, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/Nzk3OTk/)
 	
 Setup
 -----
@@ -61,10 +61,10 @@ Setup
 4. **Turn off the game's own FXAA, sharpen, depth of field & AO/SSAO/HBAO options** (if it has them).
 	- Some games do not have individual options, but have a single "post-processing" setting. Setting that to the lowest value will probably disable them all.
 5. Call up ReShade's interface in game and enable Glamarye_Fast_Effects ("Home" key by default)
-6. Check if depth buffer is working and set up correctly. If it's not available then disable the Depth of field and Ambient Occlusion effects for a small performance improvement. 	
+6. Check if depth buffer is working and set up correctly. If it's not available then Depth of field, Ambient Occlusion, Detect Menus and Detect Sky won't work - disable them. 	
 	- Use the built-in "Debug: show depth buffer" to check it's there. Close objects should be black and distant ones white.
 	- Use "Debug: show depth and FXAA edges" to check it's aligned.
-		
+	- If it isn't right see [Marty McFly's Depth Buffer guide](https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer).		
 7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
 
@@ -79,7 +79,7 @@ Troubleshooting
 	- If shadows in the wrong places then depth buffer needs configuring (see below)
 	- If you see other artefacts (e.g. shadows look bad) then options are:
 		- turn down the strength
-		- increase the quality by settings FAST_AO_POINTS to 8 or 12.
+		- increase the quality by setting FAST_AO_POINTS to 8 or 12.
 		- Try tweaking the AO options in Advanced Tuning and configuration.
 * Depth buffer issues:
 	- Check ReShade's supported games list to see any notes about depth buffer first. 
@@ -87,8 +87,15 @@ Troubleshooting
 	- If it's missing or looks different it may need configuration
 		- Use right most tab in Reshade and try to manually find the depth buffer in the list of possible buffers.
 		- Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
+	- More guidance on depth buffer setup from Marty McFly: (https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer)
 * No effects do anything. Reset settings to defaults. If using "Detect menus & videos" remember it requires correct depth buffer - depth buffer is just black no effects are applied.
+* Things are too soft/blurry. 
+	- Turn off DOF of turn down DOF blur. Depth of field blurs distant objects but not everyone wants that and if the depth buffer isn't set up well it might blur too much.
+	- Make sure sharpen is on. FXAA may slightly blur fine texture details, sharpen can fix this.
 * GShade: I have heard it works with GShade, but you might need to add "ReShade.fxh" and "ReShadeUI.fxh" from ReShade to your shaders directory too if you don't have them already.
+* Everything is set up properly, but I want better quality.
+	- use other reshade shaders instead. This is optimized for speed, some others have better quality.
+	- Make sure you're not using two versions of the same effect at the same time. Modern games have built-in antialiasing and ambient occlusion (likely slower than Glamayre.) They might be called something like FXAA/SMAA/TAA and SSAO/HBAO or just hidden in a single postprocessing quality option. Disable the game's version or disable Glamayre's version.
 		
 Enabled/disable effects
 -----------------------
@@ -99,15 +106,15 @@ Enabled/disable effects
 
 **Fast Ambient Occlusion (AO) (requires depth buffer)** - Ambient occlusion shades places that are surrounded by points closer to the camera. It's an approximation of the reduced ambient light reaching occluded areas and concave shapes (e.g. under grass and in corners.)
 
-**Bounce Lighting (requires AO)** - Approximates short-range bounced light. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use two samples of colour data as well as depth. Fast Ambient Occlusion must be enabled too.
-
 **Depth of Field (DOF) (requires depth buffer)** - Softens distant objects subtly, as if slightly out of focus. 
 
 **Detect menus & videos (requires depth buffer)** - Skip all processing if depth value is 0 (per pixel). Sometimes menus use depth 1 - in that case use Detect Sky option instead. Full-screen videos and 2D menus do not need anti-aliasing nor sharpenning, and may lose worse with them. Only enable if depth buffer always available in gameplay!
 
 **Detect sky** - Skip all processing if depth value is 1 (per pixel). Background sky images might not need anti-aliasing nor sharpenning, and may look worse with them. Only enable if depth buffer always available in gameplay!
     
-**Fake Global Illumination** - Approximates ambient light colour in areas of the scene (a bigger area than bounce lighting). This is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required!
+The following two effects do not have checkboxes, but you will see two versions of Glamayre in ReShade's effects list (with and without these). There used to be checkboxes, but there was some performance cost even if disabled (due to extra shader passes) - having two versions of the shader is faster if you don't want Fake Global Illumination.
+
+**Fake Global Illumination** and **Bounce lighting** - Approximates light bouncing and reflecting around the scene. Every pixel gets some light added from the surrounding area of the image. This is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required! Fake GI is larger scale and doesn't require depth buffer. Bounce lighting modifies ambient occlusion to more accurately colour areas it shades.
 
 Effects Intensity
 -----------------
@@ -120,11 +127,22 @@ Effects Intensity
 
 **DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
 
-**GI strength** - Fake Global Illumination intensity. High values can make colours too vivid.
-
 **AO Quality** - Due to compatibility with older drivers and D3D9 games this option has been removed - however you can still increase quality by changing the preprocessor definition FAST_AO_POINTS (defauly is 6, try 12 for best quality.)
 
-Output mode
+Fake Global Illumination
+------------------------
+
+These only work if you are using the _with Fake GI_ version of the shader.
+
+**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image.
+
+**Fake GI saturation** - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
+
+**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original.
+
+**AO Bounce multiplier** - When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading.
+
+Output modes
 -----------
 
 **Normal** - Normal output
@@ -155,17 +173,13 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 
-**Bounce multiplier** Bounce strength is proportionate to AO strength, use this to make it stronger or weaker. A bright red pillar by a white wall will make the wall a bit red, but how red?
+**Bounce multiplier** When bounce is enabled, ambient occlusion also takes into the colour of light bouncing off nearby pixels. A bright red pillar by a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. 
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
 **AO max depth diff** - Ambient occlusion biggest depth difference to allow, as percent of depth. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
 
 **FXAA bias** - Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. This FXAA algorithm is designed for speed and doesn't look as far along the edges as others - for best quality you might want turn it off and use a different shader, such as SMAA.
-
-**Fake GI colour/light balance** - Fake GI balance. Fake GI has two parts - both controled by GI strength. -1 means only bounce colour, +1 means only change brightness. If you get artefacts with an incorrect band of shadow making this negative might help.
-
-**Fake GI far/near ambient light ratio** - For Fake GI, ambient light at each pixel is estimated from both wide area colour, and surrounding pixels. This changes the weight of each. Higher generally helps contrast but too high looks unrealistic. 
 
 **FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 
 
@@ -287,9 +301,11 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+4.2 (+) Improved quality of fake global illumination, and clearer settings for it. Tweaked defaults.
+
 4.1.1 (x) Fixed typo that caused failure on older versions of ReShade (though current version 4.9.1 was okay)
 
-4.1 (x) Fixed bug affecting AO quality for some FAST_AO_POINTS. Fixed compiler warnings.
+4.1 (x) Fixed bug affecting AO quality for some FAST_AO_POINTS. Improved variance calculation for AO. Fixed compiler warnings.
 
 4.0 (+) Allow stronger sharpening. Optimized Ambient Occlusion to use fewer instructions and registers, which should fix compilation issues on some D3D9 Games. Faster and better quality Fake Global illumination; also more tweakable. Make bounce lighting faster and smoother by using using some blurred values we calculate anyway for Fake GI.
 
@@ -319,7 +335,7 @@ Thank you:
 
 Alex Tuduran for the previous blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
-macron, AlucardDH, NikkMann, Mirt81, distino, vetrogor, for bug reports.
+macron, AlucardDH, NikkMann, Mirt81, distino, vetrogor, illuzio, geisalt for feedback and bug reports.
 
 ReShade devs for ReShade.
 
@@ -375,14 +391,15 @@ uniform bool ao_enabled <
     ui_type = "radio";
 > = true;
 
-
+/*
 uniform bool bounce_lighting <
     ui_category = "Enabled Effects";
     ui_label = "Bounce Lighting (requires depth buffer & AO)";
     ui_tooltip = "Approximates short-range bounced light. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use two samples of colour data as well as depth.\n\nFast Ambient Occlusion must be enabled too.";
     ui_type = "radio";
 > = true;
-
+*/
+#define bounce_lighting (bounce_multiplier>0 && ao_enabled)
 
 uniform bool dof_enabled <
     ui_category = "Enabled Effects";
@@ -391,12 +408,15 @@ uniform bool dof_enabled <
     ui_type = "radio";
 > = true;
 
+/*
 uniform bool gi_enabled <
     ui_category = "Enabled Effects";
     ui_label = "Fake Global Illumination (depth not required!)";
     ui_tooltip = "Approximates ambient light colour in areas of the scene (a bigger area than bounce lighting).\n\nThis is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required!";
     ui_type = "radio";
 > = true;
+*/
+#define gi_enabled 1
 
 uniform bool depth_detect <
     ui_category = "Enabled Effects";
@@ -413,6 +433,22 @@ uniform bool sky_detect <
 > = false;
 
 
+uniform int debug_mode <
+    ui_category = "Output mode";
+	ui_type = "combo";
+    ui_label = "Output mode";
+    ui_items = "Normal\0"
+	           "Debug: show FXAA edges\0"
+			   "Debug: show AO shade & GI colour\0"
+	           "Debug: show depth buffer\0"
+			   "Debug: show depth and edges\0"
+			   "Debug: show GI area colour\0"
+			   "Debug: show GI far light\0"
+			   "Debug: show bounce light\0";
+	ui_tooltip = "Handy when tuning ambient occlusion settings.";
+> = 0;
+
+
 //////////////////////////////////////
 
 uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
@@ -420,7 +456,7 @@ uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 2; ui_step = .05;
 	ui_tooltip = "For values > 0.5 I suggest depth of field too. Values > 1 only recommended if you can't see individual pixels (i.e. high resolutions on small or far away screens.)";
 	ui_label = "Sharpen strength";
-> = .5;
+> = .75;
 
 uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
@@ -442,30 +478,40 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 1; ui_step = .05;
 	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).";
 	ui_label = "DOF blur";
-> = 0.5;
+> = 0;
+
+
 
 uniform float gi_strength < __UNIFORM_SLIDER_FLOAT1
-    ui_category = "Effects Intensity";
+    ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "Fake GI strength";
-    ui_tooltip = "Fake Global Illumination intensity. High values can make colours too vivid. ";
+    ui_tooltip = "Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image.";
 > = .5;
 
+uniform float gi_saturation < __UNIFORM_SLIDER_FLOAT1
+    ui_category = "Fake Global Illumination (with_Fake_GI version only)";
+	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
+    ui_label = "Fake GI saturation";
+    ui_tooltip = "Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours. ";
+> = 0.5;
 
-uniform int debug_mode <
-    ui_category = "Output mode";
-	ui_type = "combo";
-    ui_label = "Output mode";
-    ui_items = "Normal\0"
-	           "Debug: show FXAA edges\0"
-			   "Debug: show AO shade & GI colour\0"
-	           "Debug: show depth buffer\0"
-			   "Debug: show depth and edges\0"
-			   "Debug: show GI area colour\0"
-			   "Debug: show GI far light\0"
-			   "Debug: show bounce light\0";
-	ui_tooltip = "Handy when tuning ambient occlusion settings.";
-> = 0;
+uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
+	ui_category = "Fake Global Illumination (with_Fake_GI version only)";
+	ui_min = 0; ui_max = 1; ui_step = 0.01;
+	ui_tooltip = "Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original.";
+	ui_label = "Fake GI contrast";
+> = 0.5;
+
+uniform float bounce_multiplier < __UNIFORM_SLIDER_FLOAT1
+    ui_category = "Fake Global Illumination (with_Fake_GI version only)";
+	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
+    ui_label = "AO Bounce multiplier";
+    ui_tooltip = "When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. ";
+> = 1;
+
+
+
 
 uniform float reduce_ao_in_light_areas < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Advanced Tuning and Configuration";
@@ -504,12 +550,7 @@ uniform float ao_max_depth_diff < __UNIFORM_SLIDER_FLOAT1
 	ui_label = "AO max depth diff";
 > = 0.5;
 
-uniform float bounce_multiplier < __UNIFORM_SLIDER_FLOAT1
-    ui_category = "Advanced Tuning and Configuration";
-	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
-    ui_label = "AO Bounce multiplier";
-    ui_tooltip = "In Quality mode, ambient occlusion also takes into the colour of light bouncing off nearby pixels. A bright red pillar by a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. ";
-> = 1;
+
 
 uniform float fxaa_bias < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Tuning and Configuration";
@@ -517,21 +558,6 @@ uniform float fxaa_bias < __UNIFORM_SLIDER_FLOAT1
 	ui_tooltip = "Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. ";
 	ui_label = "FXAA bias";
 > = 0.025;
-
-
-uniform float gi_balance < __UNIFORM_SLIDER_FLOAT1
-	ui_category = "Advanced Tuning and Configuration";
-	ui_min = -1; ui_max = 1; ui_step = 0.1;
-	ui_tooltip = "Fake GI balance. Fake GI has two parts - both controled by GI strength. -1 means only bounce colour, +1 means only change brightness. If you get artefacts with an incorrect band of shadow making this negative might help.";
-	ui_label = "Fake GI colour/light balance";
-> = 0;
-
-uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
-	ui_category = "Advanced Tuning and Configuration";
-	ui_min = 0; ui_max = .8; ui_step = 0.01;
-	ui_tooltip = "For Fake GI, ambient light at each pixel is estimated from both wide area colour, and adjacent pixels. This changes the weight of each. Higher generally helps contrast but too high looks unrealistic. ";
-	ui_label = "Fake GI far/near ambient light ratio";
-> = 0.4;
 
 uniform bool abtest <
     ui_category = "Advanced Tuning and Configuration";
@@ -573,6 +599,63 @@ sampler2D samplerDepth
 	MinFilter = POINT;
 	MipFilter = POINT;
 };
+
+
+// This is copy of reshade's getLinearizedDepth but using POINT sampling (LINEAR interpolation can cause artefacts - thin ghost of edge one radius away.)
+float pointDepth(float2 texcoord)
+{
+#if RESHADE_DEPTH_INPUT_IS_UPSIDE_DOWN
+		texcoord.y = 1.0 - texcoord.y;
+#endif
+		texcoord.x /= RESHADE_DEPTH_INPUT_X_SCALE;
+		texcoord.y /= RESHADE_DEPTH_INPUT_Y_SCALE;
+#if RESHADE_DEPTH_INPUT_X_PIXEL_OFFSET
+		texcoord.x -= RESHADE_DEPTH_INPUT_X_PIXEL_OFFSET * BUFFER_RCP_WIDTH;
+#else // Do not check RESHADE_DEPTH_INPUT_X_OFFSET, since it may be a decimal number, which the preprocessor cannot handle
+		texcoord.x -= RESHADE_DEPTH_INPUT_X_OFFSET / 2.000000001;
+#endif
+#if RESHADE_DEPTH_INPUT_Y_PIXEL_OFFSET
+		texcoord.y += RESHADE_DEPTH_INPUT_Y_PIXEL_OFFSET * BUFFER_RCP_HEIGHT;
+#else
+		texcoord.y += RESHADE_DEPTH_INPUT_Y_OFFSET / 2.000000001;
+#endif
+		float depth = (float)tex2D(samplerDepth, texcoord);
+		return depth;
+}
+
+
+float fixDepth(float depth) {		
+		depth *= RESHADE_DEPTH_MULTIPLIER;
+
+#if RESHADE_DEPTH_INPUT_IS_LOGARITHMIC
+		const float C = 0.01;
+		depth = (exp(depth * log(C + 1.0)) - 1.0) / C;
+#endif
+#if RESHADE_DEPTH_INPUT_IS_REVERSED
+		depth = 1 - depth;
+#endif
+		const float N = 1.0;
+		depth /= RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - depth * (RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - N);
+
+		return depth;
+}
+
+float4 fixDepth4(float4 depth) {		
+		depth *= RESHADE_DEPTH_MULTIPLIER;
+
+#if RESHADE_DEPTH_INPUT_IS_LOGARITHMIC
+		const float C = 0.01;
+		depth = (exp(depth * log(C + 1.0)) - 1.0) / C;
+#endif
+#if RESHADE_DEPTH_INPUT_IS_REVERSED
+		depth = 1 - depth;
+#endif
+		const float N = 1.0;
+		depth /= RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - depth * (RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - N);
+
+		return depth;
+}
+
 
 
 #ifndef FAKE_GI_WIDTH
@@ -630,7 +713,12 @@ float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 	
 	//w, min+max colour is used later to help estimate the amount of ambient light in the area.
 	c.w = max(c.r,max(c.g,c.b)) + min(c.r,min(c.g,c.b));
-			
+	
+	//If sky detect is on... we don't want to make tops of buildings blue (or red in sunset) - make sky greyscale
+	if(sky_detect) {
+		float depth = fixDepth(pointDepth(texcoord));	
+		if(depth>=1) c.rgb=length(c.rgb);
+	}
 	return c;
 }
 
@@ -686,61 +774,6 @@ float4 bigBlur4_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) :
 
 
 	
-// This is copy of reshade's getLinearizedDepth but using POINT sampling (LINEAR interpolation can cause artefacts - thin ghost of edge one radius away.)
-float pointDepth(float2 texcoord)
-{
-#if RESHADE_DEPTH_INPUT_IS_UPSIDE_DOWN
-		texcoord.y = 1.0 - texcoord.y;
-#endif
-		texcoord.x /= RESHADE_DEPTH_INPUT_X_SCALE;
-		texcoord.y /= RESHADE_DEPTH_INPUT_Y_SCALE;
-#if RESHADE_DEPTH_INPUT_X_PIXEL_OFFSET
-		texcoord.x -= RESHADE_DEPTH_INPUT_X_PIXEL_OFFSET * BUFFER_RCP_WIDTH;
-#else // Do not check RESHADE_DEPTH_INPUT_X_OFFSET, since it may be a decimal number, which the preprocessor cannot handle
-		texcoord.x -= RESHADE_DEPTH_INPUT_X_OFFSET / 2.000000001;
-#endif
-#if RESHADE_DEPTH_INPUT_Y_PIXEL_OFFSET
-		texcoord.y += RESHADE_DEPTH_INPUT_Y_PIXEL_OFFSET * BUFFER_RCP_HEIGHT;
-#else
-		texcoord.y += RESHADE_DEPTH_INPUT_Y_OFFSET / 2.000000001;
-#endif
-		float depth = (float)tex2D(samplerDepth, texcoord);
-		return depth;
-}
-
-
-float fixDepth(float depth) {		
-		depth *= RESHADE_DEPTH_MULTIPLIER;
-
-#if RESHADE_DEPTH_INPUT_IS_LOGARITHMIC
-		const float C = 0.01;
-		depth = (exp(depth * log(C + 1.0)) - 1.0) / C;
-#endif
-#if RESHADE_DEPTH_INPUT_IS_REVERSED
-		depth = 1 - depth;
-#endif
-		const float N = 1.0;
-		depth /= RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - depth * (RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - N);
-
-		return depth;
-}
-
-float4 fixDepth4(float4 depth) {		
-		depth *= RESHADE_DEPTH_MULTIPLIER;
-
-#if RESHADE_DEPTH_INPUT_IS_LOGARITHMIC
-		const float C = 0.01;
-		depth = (exp(depth * log(C + 1.0)) - 1.0) / C;
-#endif
-#if RESHADE_DEPTH_INPUT_IS_REVERSED
-		depth = 1 - depth;
-#endif
-		const float N = 1.0;
-		depth /= RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - depth * (RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - N);
-
-		return depth;
-}
-
 
 
 //These macros allow us to use a float4x4 like an array of up to 16 floats. Saves registers and enables some efficienies compared to array of floats.
@@ -1030,7 +1063,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	}
 	float4 gi=0;
 	if(gi_path) if(bounce_lighting || gi_enabled) gi = tex2D(VBlurSampler, texcoord);
-	
+		
 	//If bounce lighting isn't enabled we actually pretend it is using c*smoothed to get better colour in bright areas (otherwise shade can be too deep or too grey.)
 	float3 bounce=smoothed*normalize(c);
 	if(gi_path && bounce_lighting) {			
@@ -1042,7 +1075,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			bounce = tex2Dlod(GITextureSampler, float4(texcoord.x,texcoord.y, 0, 2.5)).rgb;				
 								
 			//Estimate amount of white light hitting area
-			float light = gi.w+.005;
+			float light = gi.w+.005;			
 									
 			// Estimate base unlit colour of c
 			float3 unlit_c2 = c/light;
@@ -1091,44 +1124,32 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	
 	if(gi_path && gi_enabled ){	
 		
-		
-		// Local ambient light - just a very low resolution blurred version of our image
+	  	// Local ambient light - just a very low resolution blurred version of our image
 		// read this earlier... gi = tex2D(VBlurSampler, texcoord);
 		
-		//Local brightness
-		float smooth_bright = max(smoothed.r,max(smoothed.g,smoothed.b)) + min(smoothed.r,min(smoothed.g,smoothed.b));
-		
-		//Area brightness
-		float ambient = max(gi.r,max(gi.g,gi.b)) + min(gi.r,min(gi.g,gi.b));
-				
-		//estimate ambient light hitting pixel as blend between local and area brighness.
-		ambient = lerp((ambient),(smooth_bright),gi_contrast*min(1,gi_balance+1));
-						
 		//Estimate of actual colour of c, before direct lighting landed on it.
-		float3 unlit_c = c/ambient;		
+		float3 unlit_c = c/gi.w;		
 		
-		//If sky_detect is enabled, we can get artifacts where world meets the sky at depth 1, so fade out this effect with depth.
-		float gi_ratio = 1;
-		if(sky_detect) gi_ratio -= depth;
+		//Reduce saturation of gi - otherwise colours like red can become far to strong.
+		float3 desaturated_gi = lerp((float3)length(gi.rgb)/sqrt(2),gi.rgb, gi_saturation);
 		
-		float gi_colour = gi_strength*(1-gi_balance);
-							
 		//Now calcule amount of light bouncing off current pixel. multiplier comes from experimentation to balance overall colour
-		float3 gi_bounce = unlit_c * gi.rgb *gi_ratio*gi_colour*2 ;		
+		float3 gi_bounce = unlit_c * desaturated_gi *1.8;		
+						
+		float gi_ratio = 1;
+		if(sky_detect) gi_ratio -= depth*depth;
+						
+		float3 lit_c = lerp(c,gi_bounce,gi_strength*gi_ratio);
 				
-		c = c+ gi_bounce;
+		float c_bright = max(c.r,max(c.g,c.b)) + min(c.r,min(c.g,c.b));
 				
-		//We've just made everything brigher - can overbrighten whole image so compensate for that. Max result 2*c
-		c=min(2*c,c*(1-.52*sqrt(gi_ratio*gi_colour)));
-		
-		//Now calculate area brightness relative to bigger area - we exageragerate brightness difference between areas.
-		float gi_multiplier = clamp( sqrt(ambient) / sqrt(gi.w), .75, 1.5);
-		
-		float gi_brightness = gi_strength*(1+gi_balance);
-		c=lerp(c, min(c*gi_multiplier,(c+1)/2), gi_brightness*1.5*gi_ratio);			
-		
+		lit_c =lit_c*lerp(1,sqrt(length(c))/sqrt(length(gi.rgb)), gi_contrast*.5);
+				
+		// limit change to avoid problems with image
+		c = clamp(lit_c, max(c*.7,min(c,0.008)) , min(c*1.5,(c+1)/2));
+				
 		if(debug_mode==5) c=gi.rgb;	
-		if(debug_mode==6) c=gi.w;
+		if(debug_mode==6) c=gi.w;	  
 	}
   }	
   //Show depth buffer mode
@@ -1162,10 +1183,13 @@ technique Glamarye_Fast_Effects_with_Fake_GI <
 	ui_tooltip = "Designed for speed and quality, it combines multiple effects in one shader. Probably even faster than your game's built-in post-processing options (turn them off!).\n"
 				 "1. FXAA. Fixes jagged edges. \n"
 				 "2. Intelligent Sharpening. \n"				 
-				 "3. Ambient occlusion. Shades areas that receive less ambient light. It can optionally brighten exposed shapes too, making the image more vivid (AO shine setting).\n"
-				 "4. Bounce lighting. A fast local indirect lighting technique. Surfaces get some colour reflected from nearby. \n"
-				 "5. Subtle Depth of Field. Softens distant objects.\n"
-				 "6. Fake Global Illumination. Approximates ambient light colour in areas of the scene (a bigger area than bounce lighting). This is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required!\n";
+				 "3. Ambient occlusion. Shades areas that receive less ambient light. It can optionally brighten exposed shapes too, making the image more vivid (AO shine setting).\n"				 
+				 "4. Subtle Depth of Field. Softens distant objects.\n"
+				 "5. Detect Menus and Videos. Disables effects when not in-game.\n"
+				 "6. Detect Sky. Disable effects for background images behind the 3D world\n"
+				 "7. Fake Global Illumination. Attempts to look like fancy GI shaders but using a very simple 2D approximation instead. Not realistic, but very fast.\n"
+				 "8. Bounce lighting. Short-range indirect lighting - enhances shade color in Ambient Occlusion.";
+
 	>
 {	
 
@@ -1215,9 +1239,11 @@ technique Glamarye_Fast_Effects_without_bounce_nor_Fake_GI <
 	ui_tooltip = "Designed for speed and quality, it combines multiple effects in one shader. Probably even faster than your game's built-in post-processing options (turn them off!).\n"
 				 "1. FXAA. Fixes jagged edges. \n"
 				 "2. Intelligent Sharpening. \n"				 
-				 "3. Ambient occlusion. Shades areas that receive less ambient light. It can optionally brighten exposed shapes too, making the image more vivid (AO shine setting).\n"				 
+				 "3. Ambient Occlusion. Shades areas that receive less ambient light. It can optionally brighten exposed shapes too, making the image more vivid (AO shine setting).\n"				 
 				 "4. Subtle Depth of Field. Softens distant objects.\n"
-				 "This version does not have Bounce lighting nor Fake GI. In the full version those two effects use some extra passes, which cost some time even when disabled. This will be slightly faster.\n";
+				 "5. Detect Menus and Videos. Disables effects when not in-game.\n"
+				 "6. Detect Sky. Disable effects for background images behind the 3D world\n."
+				 "This version does not have Fake GI nor Bounce lighting, therefore is faster than the full version.\n";
 	>
 {	
 	pass Glamayre
