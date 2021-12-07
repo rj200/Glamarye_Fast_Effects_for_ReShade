@@ -2,14 +2,12 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 4.2.1)
+Glamarye Fast Effects for ReShade (version 4.3)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 4.2.1** In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
-
-**New in 4.2:** Improved quality of Fake Global Illumination, and clearer settings for it. Tweaked defaults.
+**New in 4.3 ** More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes.
 
 Author: Robert Jessop 
 
@@ -53,6 +51,8 @@ Comparison (version 4.2)
 ----------
 
 [Comparison of v4.2 default, max, none, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/Nzk3OTk/)
+
+TODO: Update screenshots for v4.3
 	
 Setup
 -----
@@ -136,11 +136,11 @@ Fake Global Illumination
 
 These only work if you are using the _with Fake GI_ version of the shader.
 
-**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. Greater than 1 may look unrealistic.
+**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. 
 
 **Fake GI saturation** - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
 
-**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. Greater than 1 may look unrealistic.
+**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. 
 
 **AO Bounce multiplier** - When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1.
 
@@ -188,7 +188,7 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 Tips
 ----
 
-- Turn up the strength settings, to taste. The defaults are conservative.
+- Feel free to tweak the strength settings, to taste.
 - Check if game provides depth buffer! If not turn of depth of field, ambient occlusion and detect menus for better performance (they won't affect the image if left on by mistake).
 - If depth is always available during gameplay then enabling Detect menus and videos is recommended to make non-gamplay parts clearer. 
 - If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
@@ -201,6 +201,7 @@ Tips
 	* Depth of field, AO Shine, and Fake Glboal Illumination are really a matter of personal taste. 
 	* Don't be afraid to try lower FAST_AO_POINTS (minimum: 2) and turn off bounce lighting if you want really fast AO. Even very low quality AO can make the image look better (but keep strength <= 0.5).
 	* Be careful with the advanced ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. 
+- If using fake GI but with game's builtin Ambient Occlusion instead of Glamayre's, and the game has options the pick a stronger one as, as Fake GI can reduce the effect of Ambient Occlusion if applied afterwards.
 		
 Benchmark
 ---------
@@ -303,6 +304,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+4.3 (+) More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes. Amount applied is limited to avoid damaging details and it is actually simpler now - gi.w is gone (potentially free for some future use.)
+
 4.2.1 (+) In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
 
 4.2 (+) Improved quality of fake global illumination, and clearer settings for it. Tweaked defaults.
@@ -395,15 +398,6 @@ uniform bool ao_enabled <
     ui_type = "radio";
 > = true;
 
-/*
-uniform bool bounce_lighting <
-    ui_category = "Enabled Effects";
-    ui_label = "Bounce Lighting (requires depth buffer & AO)";
-    ui_tooltip = "Approximates short-range bounced light. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use two samples of colour data as well as depth.\n\nFast Ambient Occlusion must be enabled too.";
-    ui_type = "radio";
-> = true;
-*/
-#define bounce_lighting (bounce_multiplier>0 && ao_enabled)
 
 uniform bool dof_enabled <
     ui_category = "Enabled Effects";
@@ -446,9 +440,7 @@ uniform int debug_mode <
 			   "Debug: show AO shade & GI colour\0"
 	           "Debug: show depth buffer\0"
 			   "Debug: show depth and edges\0"
-			   "Debug: show GI area colour\0"
-			   "Debug: show GI far light\0"
-			   "Debug: show bounce light\0";
+			   "Debug: show GI area colour\0";
 	ui_tooltip = "Handy when tuning ambient occlusion settings.";
 > = 0;
 
@@ -460,7 +452,7 @@ uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 2; ui_step = .05;
 	ui_tooltip = "For values > 0.5 I suggest depth of field too. Values > 1 only recommended if you can't see individual pixels (i.e. high resolutions on small or far away screens.)";
 	ui_label = "Sharpen strength";
-> = .75;
+> = .5;
 
 uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
@@ -482,38 +474,48 @@ uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 1; ui_step = .05;
 	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).";
 	ui_label = "DOF blur";
-> = 0;
+> = .25;
 
 
 
 uniform float gi_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
-	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
+	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "Fake GI strength";
-    ui_tooltip = "Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. Greater than 1 may look unrealistic.";
-> = .5;
+    ui_tooltip = "Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image.";
+> = .6;
 
 uniform float gi_saturation < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "Fake GI saturation";
     ui_tooltip = "Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours. ";
-> = 0.5;
+> = 0.6;
 
 uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Fake Global Illumination (with_Fake_GI version only)";
-	ui_min = 0; ui_max = 2; ui_step = 0.01;
-	ui_tooltip = "Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. Greater than 1 may look unrealistic.";
+	ui_min = 0; ui_max = 1; ui_step = 0.01;
+	ui_tooltip = "Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. Recommendation: no more than half of GI strength.";
 	ui_label = "Fake GI contrast";
-> = 0.5;
+> = 0.3;
+
+/*
+uniform bool bounce_lighting <
+    ui_category = "Fake Global Illumination (with_Fake_GI version only)";
+    ui_label = "Bounce Lighting (requires depth buffer & AO)";
+    ui_tooltip = "Approximates short-range bounced light. A bright red pillar by a white wall will make the wall a bit red. Makes Ambient Occlusion use two samples of colour data as well as depth.\n\nFast Ambient Occlusion must be enabled too.";
+    ui_type = "radio";
+> = true;
+*/
+
+#define bounce_lighting (ao_enabled)
 
 uniform float bounce_multiplier < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
     ui_label = "AO Bounce multiplier";
-    ui_tooltip = "When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1.";
+    ui_tooltip = "When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? \nUse this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1. ";
 > = 1;
-
 
 
 
@@ -697,6 +699,8 @@ texture VBlurTex {
 
 
 
+
+
 sampler HBlurSampler {
     Texture = HBlurTex;
 	
@@ -710,48 +714,34 @@ sampler VBlurSampler {
 
 float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 {
-	if(!gi_enabled && !bounce_lighting) ;
+	if(!gi_enabled && !bounce_lighting) discard;
 	float4 c=0;
 	
 	c = tex2D(samplerColor, texcoord);
 	
-	//w, min+max colour is used later to help estimate the amount of ambient light in the area.
-	c.w = max(c.r,max(c.g,c.b)) + min(c.r,min(c.g,c.b));
-	
 	//If sky detect is on... we don't want to make tops of buildings blue (or red in sunset) - make sky greyscale
 	if(sky_detect) {
-		float depth = fixDepth(pointDepth(texcoord));	
-		if(depth>=1) c.rgb=length(c.rgb);
+		float depth = fixDepth(pointDepth(texcoord));			
+		if(depth>=1) c.rgb=length(c.rgb);		
 	}
 	return c;
 }
 
 
 float4 bigBlur(sampler s, in float4 pos, in float2 texcoord, in float2 step  ) {
-	step *= 1/float2(FAKE_GI_WIDTH,FAKE_GI_HEIGHT);
 	
 	float4 color = 0;
-	
-	//The numbers are from pascals triange. You could add more steps and/or change the row used to change the shape of the blur. using float4 because for w we want brightness over a larger area - it's basically two different blurs in one.
-	
-	//Slightly unusual weights we want to give a bit less to the centre because the effect we want is light bouncing from nearby - it it's easy to just overemphasise local colour instead.
-	float4 w[5] = {float4(1,1,1,2 ),float4(2,2,2,2 ),float4(3,3,3,1 ),float4(2,2,2,2 ),float4(1,1,1,2 )};
-	
-	float4 sum=0;
 		
-	float2 offset=-2.0*step ;
-	[unroll]
-	for( uint i=0; i<5; i++) {
-		float4 c = tex2D(s, texcoord + offset);
-		offset+=step;
-		c*=w[i];
-		color+=c;
-		sum+=w[i];
-	}
-	return color/sum;
+	float2 pixelsize = 1/float2(FAKE_GI_WIDTH,FAKE_GI_HEIGHT);
+	color+= tex2D(s, texcoord - pixelsize*round(step*2));
+	color+= tex2D(s, texcoord - pixelsize*round(step*.67));
+	color+= tex2D(s, texcoord + pixelsize*round(step*.67));
+	color+= tex2D(s, texcoord + pixelsize*round(step*2));
+		
+	return color/4;
 }
 
-#define halfpixel (.5/float2(FAKE_GI_WIDTH,FAKE_GI_HEIGHT))
+#define halfpixel ((.5)/float2(FAKE_GI_WIDTH,FAKE_GI_HEIGHT))
 
 float4 bigBlur1_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
 {
@@ -1068,6 +1058,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	}
 	float4 gi=0;
 	if(gi_path) if(bounce_lighting || gi_enabled) gi = tex2D(VBlurSampler, texcoord);
+	float gi_bright = max(gi.r,max(gi.g,gi.b)) + min(gi.r,min(gi.g,gi.b));
 		
 	//If bounce lighting isn't enabled we actually pretend it is using c*smoothed to get better colour in bright areas (otherwise shade can be too deep or too grey.)
 	float3 bounce=smoothed*normalize(c);
@@ -1080,7 +1071,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			bounce = tex2Dlod(GITextureSampler, float4(texcoord.x,texcoord.y, 0, 2.5)).rgb;				
 								
 			//Estimate amount of white light hitting area
-			float light = gi.w+.005;			
+			float light = gi_bright+.005;			
 									
 			// Estimate base unlit colour of c
 			float3 unlit_c2 = c/light;
@@ -1091,6 +1082,41 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	} 
 	  			
 	bounce = bounce*ao_strength*bounce_multiplier*min(ao,.5);
+	
+	// Fake Global Illumination - 2D, no depth. Works better than you might expect!
+	
+	if(gi_path && gi_enabled && debug_mode!=7){	
+	    // Local ambient light - just a very low resolution blurred version of our image
+		// read this earlier... gi = tex2D(VBlurSampler, texcoord);
+		
+		//Local brightness
+		float smooth_bright = max(smoothed.r,max(smoothed.g,smoothed.b)) + min(smoothed.r,min(smoothed.g,smoothed.b));
+				
+		//Area brightness		
+		float gi_bright = max(gi.r,max(gi.g,gi.b)) + min(gi.r,min(gi.g,gi.b));
+		
+		//estimate ambient light hitting pixel as blend between local and area brighness.
+		float ambient=lerp(gi_bright,smooth_bright,.5);
+				
+		//Estimate of actual colour of c, before direct lighting landed on it.
+		float3 unlit_c = c/ambient;		
+		
+		//Reduce saturation of gi - otherwise colours like red can become far to strong.
+		float3 desaturated_gi = lerp((float3)length(gi.rgb)/sqrt(2),gi.rgb, length(gi.rgb*gi_saturation)/length(c*(1-gi_saturation)+gi.rgb*gi_saturation));
+				
+		float gi_ratio = 1;
+		if(sky_detect) gi_ratio -= depth*depth;
+		
+		
+		//Now calcule amount of light bouncing off current pixel. multiplier comes from experimentation to balance overall colour
+		float3 gi_bounce = unlit_c * 2 * desaturated_gi;	
+		
+		c = lerp(c, clamp(c*sqrt(length(c)/length(gi.rgb)), c*.75,c*1.5), gi_contrast);
+		
+		float gi_length = clamp(length(min((gi.rgb+c+c-smoothed)/2,gi_bounce) ), length(c), length(c)*1.5 );
+				
+		c = lerp(c, normalize(gi_bounce) * gi_length, gi_strength*gi_ratio);
+	}
 	
 	if(ao!=0) {
 		//prevent AO affecting areas that are white - saturated light areas. These are probably clouds or explosions and shouldn't be shaded.
@@ -1117,45 +1143,12 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			
 			
 			//apply AO and clamp the pixel to avoid going completely black or white. 
-			c = clamp( c*(1-ao) + bounce,  0.2*c, c  );
+			c = clamp( c*(1-ao) + bounce,  0.25*c, c  );
 		}
-		if(debug_mode==7) c=5*bounce; //tex2Dlod(GITextureSampler, float4(texcoord.x,texcoord.y, 0, 2.5)).rgb;
 					
-	}	
-	
-	
-	
-	// Fake Global Illumination - 2D, no depth. Works better than you might expect!
-	
-	if(gi_path && gi_enabled ){	
-		
-	  	// Local ambient light - just a very low resolution blurred version of our image
-		// read this earlier... gi = tex2D(VBlurSampler, texcoord);
-		
-		//Estimate of actual colour of c, before direct lighting landed on it.
-		float3 unlit_c = c/gi.w;		
-		
-		//Reduce saturation of gi - otherwise colours like red can become far to strong.
-		float3 desaturated_gi = lerp((float3)length(gi.rgb)/sqrt(2),gi.rgb, gi_saturation);
-		
-		//Now calcule amount of light bouncing off current pixel. multiplier comes from experimentation to balance overall colour
-		float3 gi_bounce = unlit_c * desaturated_gi *1.8;		
-						
-		float gi_ratio = 1;
-		if(sky_detect) gi_ratio -= depth*depth;
-						
-		float3 lit_c = lerp(c,gi_bounce,gi_strength*gi_ratio);
-				
-		float c_bright = max(c.r,max(c.g,c.b)) + min(c.r,min(c.g,c.b));
-				
-		lit_c =lit_c*lerp(1,sqrt(length(c))/sqrt(length(gi.rgb)), gi_contrast*.5);
-				
-		// limit change to avoid problems with image
-		c = clamp(lit_c, min(c,0.008) , (c+1)/2);
-						
-		if(debug_mode==5) c=gi.rgb;	
-		if(debug_mode==6) c=gi.w;	  
 	}
+	
+	if(gi_path) if(debug_mode==5) c=gi.rgb;	
   }	
   //Show depth buffer mode
   if(debug_mode == 3) c = depth ; 	
@@ -1197,7 +1190,6 @@ technique Glamarye_Fast_Effects_with_Fake_GI <
 
 	>
 {	
-
 	pass makeGI
 	{
 		VertexShader = PostProcessVS;
@@ -1228,6 +1220,7 @@ technique Glamarye_Fast_Effects_with_Fake_GI <
         PixelShader  = bigBlur4_PS;
         RenderTarget = VBlurTex;
     }
+
 	
 	pass {
 		VertexShader = PostProcessVS;
