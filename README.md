@@ -1,15 +1,15 @@
-Glamarye Fast Effects for ReShade (version 4.2.1)
+Glamarye Fast Effects for ReShade (version 4.3)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
 
-**New in 4.2.1** In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
-
-**New in 4.2:** Improved quality of Fake Global Illumination, and clearer settings for it. Tweaked defaults.
+**New in 4.3 ** More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes.
 
 Author: Robert Jessop 
 
 License: MIT
+	
+Copyright 2021 Robert Jessop 
 
 
 About
@@ -40,6 +40,8 @@ Comparison (version 4.2)
 ----------
 
 [Comparison of v4.2 default, max, none, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/Nzk3OTk/)
+
+TODO: Update screenshots for v4.3
 	
 Setup
 -----
@@ -123,11 +125,11 @@ Fake Global Illumination
 
 These only work if you are using the _with Fake GI_ version of the shader.
 
-**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. Greater than 1 may look unrealistic.
+**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. 
 
 **Fake GI saturation** - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
 
-**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. Greater than 1 may look unrealistic.
+**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. 
 
 **AO Bounce multiplier** - When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1.
 
@@ -175,7 +177,7 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 Tips
 ----
 
-- Turn up the strength settings, to taste. The defaults are conservative.
+- Feel free to tweak the strength settings, to taste.
 - Check if game provides depth buffer! If not turn of depth of field, ambient occlusion and detect menus for better performance (they won't affect the image if left on by mistake).
 - If depth is always available during gameplay then enabling Detect menus and videos is recommended to make non-gamplay parts clearer. 
 - If the game uses lots of dithering (i.e. ░▒▓ patterns), sharpen may exagerate it, so use less sharpenning. (e.g. Witcher 2's lighting & shadows.)		
@@ -188,6 +190,7 @@ Tips
 	* Depth of field, AO Shine, and Fake Glboal Illumination are really a matter of personal taste. 
 	* Don't be afraid to try lower FAST_AO_POINTS (minimum: 2) and turn off bounce lighting if you want really fast AO. Even very low quality AO can make the image look better (but keep strength <= 0.5).
 	* Be careful with the advanced ambient occlusion settings; what looks good in one scene may be too much in another. Try to test changes in different areas of the game with different fog and light levels. 
+- If using fake GI but with game's builtin Ambient Occlusion instead of Glamayre's, and the game has options the pick a stronger one as, as Fake GI can reduce the effect of Ambient Occlusion if applied afterwards.
 		
 Benchmark
 ---------
@@ -290,6 +293,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+4.3 (+) More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes. Amount applied is limited to avoid damaging details and it is actually simpler now - gi.w is gone (potentially free for some future use.)
+
 4.2.1 (+) In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
 
 4.2 (+) Improved quality of fake global illumination, and clearer settings for it. Tweaked defaults.
@@ -335,3 +340,4 @@ Glamarye?
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
 
+	
