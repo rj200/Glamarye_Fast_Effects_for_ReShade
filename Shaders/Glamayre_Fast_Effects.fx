@@ -304,6 +304,8 @@ Fake Global Illumination is a quite simple 2D approximation of global illuminati
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+4.4_beta (*) Experimental HDR support
+
 4.3 (+) More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes. Amount applied is limited to avoid damaging details and it is actually simpler now - gi.w is gone (potentially free for some future use.)
 
 4.2.1 (+) In response to feedback about the effect not being strong enough I have increased the maximum Fake GI strength and contrast.
@@ -370,6 +372,17 @@ namespace Glamarye_Fast_Effects
 #ifndef FAST_AO_POINTS
 	#define FAST_AO_POINTS 6
 #endif
+
+#ifndef HDR_BACKBUFFER_IS_LINEAR
+	#define HDR_BACKBUFFER_IS_LINEAR 0
+#endif
+
+#ifndef HDR_MAX_COLOR_VALUE
+	#define HDR_MAX_COLOR_VALUE 1
+#endif
+
+
+
 
 
 
@@ -583,9 +596,14 @@ sampler2D samplerColor
 	// The texture to be used for sampling.
 	Texture = ReShade::BackBufferTex;
 
-	// Enable converting  to linear colors when sampling from the texture.
-	SRGBTexture = true;
+	// Enable converting  to linear colors when sampling from the texture, unless in HDR mode.
 	
+#if HDR_BACKBUFFER_IS_LINEAR
+	SRGBTexture = false;
+#else
+	SRGBTexture = true;
+#endif
+
 };
 
 sampler2D samplerDepth
@@ -859,8 +877,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		if(sharp_enabled) {	
 			float3 sharp_diff = 2*c-n2-s2;
 			
-			//If pixel will get brighter, reduce strength. Looks better. Don't brighten at all in bright areas, but allow dark areas to get a bit lighter. 
-			sharp_diff = min(sharp_diff, sharp_diff * max(.5-length(c),0));
+			//If pixel will get brighter, reduce strength. Looks better. Don't brighten at all in bright areas, but allow dark areas to get a bit lighter. 			
+			sharp_diff = min(sharp_diff, sharp_diff * max(.5*-length(c)/HDR_MAX_COLOR_VALUE,0));
 	
 			// If DOF enabled, we adjust turn down sharpen based on depth.			
 			if(dof_enabled) {
@@ -873,8 +891,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		}
 	  
 		// Debug mode: make the smoothed option more highlighted in green.		
-		if(debug_mode==1) { c=c.ggg; smoothed=lerp(c,float3(0,1,0),ratio);  } 
-		if(debug_mode==4) { c=depth; smoothed=lerp(c,float3(0,1,0),ratio);  } 
+		if(debug_mode==1) { c=c.ggg; smoothed=lerp(c,float3(0,HDR_MAX_COLOR_VALUE,0),ratio);  } 
+		if(debug_mode==4) { c=depth*HDR_MAX_COLOR_VALUE; smoothed=lerp(c,float3(0,HDR_MAX_COLOR_VALUE,0),ratio);  } 
 				
 		//Now apply FXAA after sharpening		
 		c = lerp(c, smoothed, ratio);	
@@ -1054,7 +1072,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		if(square || points==2) ao*=(2.0/3.0);
 		
 		//debug Show ambient occlusion mode
-		if(debug_mode==2 ) c=.25;
+		if(debug_mode==2 ) c=.25*HDR_MAX_COLOR_VALUE;
 	}
 	float4 gi=0;
 	if(gi_path) if(bounce_lighting || gi_enabled) gi = tex2D(VBlurSampler, texcoord);
@@ -1131,7 +1149,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 					
 			
 			//apply AO and clamp the pixel to avoid going completely black or white. 
-			c = min( c*(1-ao),  .5*c +0.5  );
+			c = min( c*(1-ao),  lerp(c,HDR_MAX_COLOR_VALUE,0.5)  );
 		}
 		else {
 			
@@ -1151,7 +1169,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	if(gi_path) if(debug_mode==5) c=gi.rgb;	
   }	
   //Show depth buffer mode
-  if(debug_mode == 3) c = depth ; 	
+  if(debug_mode == 3) c = depth*HDR_MAX_COLOR_VALUE ; 	
   return c;
 }
 
@@ -1227,7 +1245,13 @@ technique Glamarye_Fast_Effects_with_Fake_GI <
 		PixelShader = Glamarye_Fast_Effects_all_PS;
 				
 		// Enable gamma correction applied to the output.
+		
+#if HDR_BACKBUFFER_IS_LINEAR
+		SRGBWriteEnable = false;
+#else
 		SRGBWriteEnable = true;
+#endif
+
 	}		
 	
 }
@@ -1250,7 +1274,11 @@ technique Glamarye_Fast_Effects_without_bounce_nor_Fake_GI <
 		PixelShader = Glamarye_Fast_Effects_without_bounce_nor_Fake_GI_PS;
 				
 		// Enable gamma correction applied to the output.
+#if HDR_BACKBUFFER_IS_LINEAR
+		SRGBWriteEnable = false;
+#else
 		SRGBWriteEnable = true;
+#endif
 	}		
 	
 }
