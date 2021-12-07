@@ -2,7 +2,7 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 4.3)
+Glamarye Fast Effects for ReShade (version 4.4_beta)
 ======================================
 
 (Previously know as Fast_FXAA_sharpen_DOF_and_AO)
