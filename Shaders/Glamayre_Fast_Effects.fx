@@ -878,7 +878,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			float3 sharp_diff = 2*c-n2-s2;
 			
 			//If pixel will get brighter, reduce strength. Looks better. Don't brighten at all in bright areas, but allow dark areas to get a bit lighter. 			
-			sharp_diff = min(sharp_diff, sharp_diff * max(.5*-length(c)/HDR_MAX_COLOR_VALUE,0));
+			sharp_diff = min(sharp_diff, sharp_diff * max(.5-length(c)/HDR_MAX_COLOR_VALUE,0));
 	
 			// If DOF enabled, we adjust turn down sharpen based on depth.			
 			if(dof_enabled) {
