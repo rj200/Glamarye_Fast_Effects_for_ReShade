@@ -1,15 +1,13 @@
-Glamarye Fast Effects for ReShade (version 4.3)
+Glamarye Fast Effects for ReShade (version 5)
 ======================================
 
-(Previously know as Fast_FXAA_sharpen_DOF_and_AO)
-
-**New in 4.3 ** More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes.
+**New in 5 ** HDR support. Faster AO. Better Fake GI, especially if depth is available. Better sharpen.
 
 Author: Robert Jessop 
 
 License: MIT
 	
-Copyright 2021 Robert Jessop 
+Copyright 2022 Robert Jessop 
 
 
 About
@@ -25,23 +23,25 @@ Glamarye Fast Effects combines several fast versions of common postprocessing en
 4. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
 5. Detect Menus and Videos. Depending on how the game uses the depth buffer it may be possible to detect when not in-game and disable the effects.
 6. Detect Sky. Depending on how the game uses the depth buffer it may be possible to detect background images behind the 3D world and disable effects for them.
-7. Fake Global Illumination. Attempts to look like fancy GI shaders but using a very simple 2D approximation instead. Not the most realistic solution but very fast. It makes the lighting look less flat; you can even see bright colours reflecting off other surfaces in the area. 
-8. Bounce lighting. A very fast short-range indirect lighting implementation that gives surfaces some coloured light reflected from nearby. It makes colours and shade much more realistic than Ambient Occlusion alone.
+7. Fake Global Illumination. Attempts to look like fancy GI shaders but using very simple approximations instead. Not the most realistic solution but very fast. It makes the lighting look less flat; you can even see bright colours reflecting off other surfaces in the area. The main part of it can be run in 2D mode for when depth info isn't available. With depth it can approximate local and distant indirect illumination even better, and add large scale ambient occlusion.
+8. Adaptive contrast enchancement.
 	
-3, 4 & 5 require depth buffer access.
+3, 4, 5 & 6 require depth buffer access. 7 improves with depth, but can work without.
+
+High Dynamic Range (HDR) support: Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and adapts automatically.
+
 
 Tested in Toussaint (and other places and games.)
 
-![Screenshot](glamayre%204.2%20max.png "Beauclair, The Witcher 3")
+![Screenshot](Glamayre%20v5.0%20double%20strength.png "Beauclair, The Witcher 3")
 
-This was taken in version 4.2 with strengths all set to 1 to make effects more clear. Default settings are more subtle than this.
+This was taken in version 5 with most effects' strengths doubled. Default settings are more subtle than this.
 
-Comparison (version 4.2)
+Comparison (version 5)
 ----------
 
-[Comparison of v4.2 default, max, none, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/Nzk3OTk/)
+[Comparison of v5 default, increase strength, no postprocessing, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/OTU0ODI)
 
-TODO: Update screenshots for v4.3
 	
 Setup
 -----
@@ -56,8 +56,11 @@ Setup
 	- Use the built-in "Debug: show depth buffer" to check it's there. Close objects should be black and distant ones white.
 	- Use "Debug: show depth and FXAA edges" to check it's aligned.
 	- If it isn't right see [Marty McFly's Depth Buffer guide](https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer).		
-7. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
+7. High Dynamic Range (HDR). Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and adapts automatically.
+	
+8. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
+	
 
 Troubleshooting
 -----------
@@ -80,6 +83,8 @@ Troubleshooting
 		- Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer.
 	- More guidance on depth buffer setup from Marty McFly: (https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer)
 * No effects do anything. Reset settings to defaults. If using "Detect menus & videos" remember it requires correct depth buffer - depth buffer is just black no effects are applied.
+* HDR issues:
+	- HDR support is new, please report any bugs, including ReShade's log, details of the game and your monitor. 16 bit mode in particular I haven't been able to test properly yet - there is an option, "HDR FP16 color is in nits", which only appears in 16 bit mode - try tweaking it.
 * Things are too soft/blurry. 
 	- Turn off DOF of turn down DOF blur. Depth of field blurs distant objects but not everyone wants that and if the depth buffer isn't set up well it might blur too much.
 	- Make sure sharpen is on. FXAA may slightly blur fine texture details, sharpen can fix this.
@@ -87,11 +92,13 @@ Troubleshooting
 * Everything is set up properly, but I want better quality.
 	- use other reshade shaders instead. This is optimized for speed, some others have better quality.
 	- Make sure you're not using two versions of the same effect at the same time. Modern games have built-in antialiasing and ambient occlusion (likely slower than Glamayre.) They might be called something like FXAA/SMAA/TAA and SSAO/HBAO or just hidden in a single postprocessing quality option. Disable the game's version or disable Glamayre's version.
+
 		
 Enabled/disable effects
 -----------------------
 	
-**Fast FXAA** - Fullscreen approximate anti-aliasing. Fixes jagged edges.
+**Fast FXAA** - Fullscreen approximate anti-aliasing. Fixes jagged edges. Recommendation: use with sharpen too, otherwise it can blur details slightly. 
+
 
 **Intelligent Sharpen** - Sharpens details but not straight edges (avoiding artefacts). It works with FXAA and depth of field instead of fighting them. It darkens pixels more than it brightens them; this looks more realistic. 
 
@@ -103,9 +110,19 @@ Enabled/disable effects
 
 **Detect sky** - Skip all processing if depth value is 1 (per pixel). Background sky images might not need anti-aliasing nor sharpenning, and may look worse with them. Only enable if depth buffer always available in gameplay!
     
-The following two effects do not have checkboxes, but you will see two versions of Glamayre in ReShade's effects list (with and without these). There used to be checkboxes, but there was some performance cost even if disabled (due to extra shader passes) - having two versions of the shader is faster if you don't want Fake Global Illumination.
 
-**Fake Global Illumination** and **Bounce lighting** - Approximates light bouncing and reflecting around the scene. Every pixel gets some light added from the surrounding area of the image. This is a simple 2D approximation and therefore not as realistic as path tracing or ray tracing solutions, but it's fast! No depth required! Fake GI is larger scale and doesn't require depth buffer. Bounce lighting modifies ambient occlusion to more accurately colour areas it shades.
+**Fake Global Illumination (Fake GI)** - Attempts to look like fancy GI shaders but using very simple approximations. Not as realistic, but very fast. 
+
+_Note:_ Fake GI does not have a checkbox, instead you will see two versions of Glamayre in ReShade's effects list (with_Fake_GI and without_Fake_GI). Select the correct one to enable or disable Fake GI. This is because the extra shader passes it uses have some overhead that cannot be eliminated with a checkbox.
+
+What is global illumination? The idea is to simulate how light moves around a scene - objects are lit not just by direct line of sight to lights, but also by light bouncing off other objects. This is hard to calculate in real time. Your game probably uses one of 3 types of lighting:
+
+1. Modern games on modern GPUs may include actual global illumination, using ray tracing or path tracing. Adding Fake GI will make those look worse. 
+2. Some games have pre-calculated static global illumination that doesn't change (or does in very limited ways). Moving objects might cast simple shadows but cannot cast or recieve bounced light. 
+3. Some games have dynamic lighting, but only direct lighting and shadows. Secondary light bounces are not calculated and instead the a constant amount of ambient light is applied to every surface so they don't disappear completely when in shadow.
+
+This Fake Global illumination doesn't calculate all the light bounces using physics. Instead it creates an effect that looks similar most of the time using some simple heuristics (e.g grey thing next to red thing will look a little bit redder). It's a fast approximation with no real understanding of the scene (in fact, it can work a purely 2D fashion if depth is not available). With luck, it looks like indirect bounced lighting and is close enough to make the image look better. It also tends to exagerate existing lighting in games, which if it is not too strong is okay.
+
 
 Effects Intensity
 -----------------
@@ -120,18 +137,26 @@ Effects Intensity
 
 **AO Quality** - Due to compatibility with older drivers and D3D9 games this option has been removed - however you can still increase quality by changing the preprocessor definition FAST_AO_POINTS (defauly is 6, try 12 for best quality.)
 
-Fake Global Illumination
+Fake Global Illumination Settings
 ------------------------
 
-These only work if you are using the _with Fake GI_ version of the shader.
+These only work if you are using the _with Fake GI_ version of the shader. The first three options work even without depth information.
 
-**Fake GI strength** - Fake Global Illumination intensity. Every pixel gets some light added from the surrounding area of the image. 
+**Fake GI lighting strength** - Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image.
 
-**Fake GI saturation** - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
+**Fake GI saturation" - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
 
-**Fake GI contrast** - Increases contrast of image relative to average light in each area. Fake Global Illumination can reduce overall contrast; this setting compensates for that and even improve contrast compared to the original. 
+**Adaptive contrast enhancement** - Increases contrast relative to average light in surrounding area. Fake Global Illumination can reduce overall contrast; this setting compensates for that. It actually may be useful on it's own with lighting strength zeroed - it can improve contrast and clarity of any image. Recommendation: set to roughly half of GI lighting strength.
 
-**AO Bounce multiplier** - When Fake GI and AO are both enabled, it uses local depth and colour information to approximate short-range bounced light. A bright red pillar next to a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. Also affects overall brightness of AO shading. Recommendation: keep at 1.
+**Enable Fake GI effects that require depth** - This must be checked for the following sliders to have effect. If you don't have depth buffer data or don't want the AO effects then unchecking this and just using 2D Fake GI will make it slightly faster. 
+
+**Fake GI big AO strength (requires depth)** - Large scale ambient occlusion. Higher = darker shadows. A big area effect providing subtle shading of enclosed spaces, which would recieve less ambient light. It is fast but very approximate. It is subtle and smooth so it's imperfections are not obvious nor annoying. Use in combination with normal ambient occlusion, not instead of it.
+
+**Fake GI local AO strength (requires depth)** - Provides additional ambient occlusion with a flatter shape, subtly enhancing Fast Ambient Occlusion and bounce lighting, at very little cost. This Higher = darker shadows. This would have visible artefacts at high strength; therefore maximum shade added is very small. Use in combination with normal ambient occlusion, not instead of it.
+
+**Fake GI local bounce strength (requires depth) ** - A bright red pillar next to a white wall will make the wall a bit red, but how red? It uses local depth and colour information to approximate short-range bounced light. It only affects areas made darker by Glamayre's fast ambient occlusion and Fake GI local AO (not big AO). Recommendation: keep near 1.
+
+**Fake GI offset** - Fake global illumination uses a very blurred version of the image to collect approximate light from a wide area around each pixel. If use of depth is enabled, it adjusts the offset based on the angle of the local surface. This makes it better pick up colour from facing surfaces, but if set too big it may miss nearby surfaces in favour of further ones. The value is the maximum offset, as a fraction of screen size.
 
 Output modes
 -----------
@@ -146,12 +171,21 @@ Output modes
 
 **Debug: show depth and edges** - Shows depth buffer and highlights edges - it helps you check if depth buffer is correctly aligned with the image. Some games (e.g. Journey) do weird things that mean it's offset and tweaking ReShade's depth buffer settings might be required. It's as if you can see the Matrix.
 
-**Debug: show GI area colour** - Global Illumination: Shows the colour of the light from the area affecting to each pixel.
+The rest of the debug options only apply if Fake Global Illumination is enabled (_with Fake GI_ version of Glamayre).
 
-**Debug: show GI ambient light** Global Illumination: Shows the brightness of the bigger each area - ratio between this and color helps decide overall brightness.
+**Debug: show GI area colour** - Shows the colour of the light from the wider area affecting to each pixel.
 
-**Debug: show bounce light** - Shows what the bounce lightling effect is adding and where.
+**Debug: show GI bounce colour** - Shows the colour of local (short range) bounced light effect.
 
+**Debug: show GI contrast background colour** - A blurred version of the image. Adaptive contrast enhancement works by increasing the difference of each pixel from the same point in this blurred image.
+
+**show GI contrast diff** - Shows the difference how much Adaptive contrast is lightening or darkening each pixel, relative to grey.
+
+**Debug: show GI big AO** - Shows the large scale ambient occlusion effect alone on a grey background.	
+
+**Debug: show GI area depth** - Shows the blurred depth buffer which is used to calculate big AO
+
+**Debug: Splitscreen OFF/ON** - Shows original image unprocessed on left half of screen, and after Glamayre effect on the right.
 
 Advanced Tuning and Configuration
 ------------------------
@@ -163,14 +197,16 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
-
-**Bounce multiplier** When bounce is enabled, ambient occlusion also takes into the colour of light bouncing off nearby pixels. A bright red pillar by a white wall will make the wall a bit red, but how red? Use this to make the effect stronger or weaker. 
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
 	
 **AO max depth diff** - Ambient occlusion biggest depth difference to allow, as percent of depth. Prevents nearby objects casting shade on distant objects. Decrease if you get dark halos around objects. Increase if holes that should be shaded are not.
 
 **FXAA bias** - Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. This FXAA algorithm is designed for speed and doesn't look as far along the edges as others - for best quality you might want turn it off and use a different shader, such as SMAA.
+
+**Tone mapping compensation** (available for non-HDR output only) - In the real world we can see a much wider range of brightness than a standard screen can produce. Games use tone mapping to reduce the dynamic range, especially in bright areas, to fit into display limits. To calculate lighting effects like Fake GI accurately on SDR images, we want to undo tone mapping first, then reapply it afterwards. Optimal value depends on tone mapping method the game uses. You won't find that info published anywhere for most games. Our compensation is based on Reinhard tone mapping, but hopefully will be close enough if the game uses another curve like ACES. At 5 it's pretty close to ACES in bright areas but never steeper. In HDR modes this is not required.";
+
+**HDR FP16 color is in nits** (available for HDR output only) - Set to true if game output is in nits (100 is white); I hear Epic games may use this. False if it's in scRGB (1 is white)";
 
 **FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 
 
@@ -283,15 +319,43 @@ There are two optional variations that change the Fast Ambient Occlusion algorit
 1. Shine. Normally AO is used only to make pixels darker. With the AO Shine setting (which is set quite low by default), we allow AO amount to be negative. This brightens convex areas (corners and bumps pointing at the camera.) Not super realistic but it really helps emphasise the shapes. This is basically free - instead of setting negative AO to zero we multiply it by ao_shine_strength.
 2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We use same wide area brightness from the Fake GI algorithm to estimate the ambient light and therefore the unlit colour of the pixel, and therefore how much light it will reflect. We blur the image to get the average light nearby. We multiply the unlit pixel colour with the nearby light to get the light bounced. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
 
-Fake Global Illumination is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we blur the main image to get the overall colour of light in each area. We also blur the maximum of red, green and blue to estimate the amount of ambient light in the area - this is used to help guess if current pixel's true surface colour -  is likely a light surface in shadow, or a dark surface in the light? This surface colour is multiplied by the overall light and added to the pixel. The pixel is darkenned to keep the overall image about the same brightness. We also blur the image again to get a larger ambient light area. The ratio of of two blurs is used as a multiplier for the pixel brightness - this gives some variation and increases the contrast between light and dark areas. Overall the image appears less flat - even if the illumination isn't always realistic, the subtle variations in shade help make the image seem more real.
+Fake Global Illumination without depth enabled is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we downsample and blur the main image to get the overall colour of light in each area. The blurred and original pixel's brightness are used together to estimate the current pixel's true surface colour; is likely a light surface in shadow, or a dark surface in the light? We reduce the saturation of the blurred colour (to prevent oversaturated colour in the output.) The pixel colour is multiplied by the blurred area light and blended with the pixel. We clamp the maximum brightness change to prevent darkenning or washing out details. Overall the image appears less flat - even if the illumination isn't always realistic, the subtle variations in shade help make the image seem more real.
 
-**Ideas for future improvement**
+For the rest of the effects we actually use two levels of blur - the big one, and a smaller, less smooth one which is simply a 2.5 MIP level read of the first step of our blur. 
 
+Adaptive Contrast enhancement uses our the average of our two blurred images as a centre value and moves each pixel value away from it. 
+
+If depth is enabled then we also include a depth channel in the blurred images. Also, where depth==1 (sky) we brighten and completely desaturate the colour image - this makes sky and rooftops look better. If depth is enabled and Fake GI offset set then we use ddx & ddy to read the local depth buffer surface slope and move the point we sample the big blur in the direction away from the camera.
+
+Big AO (large scale ambient occlusion) simply uses the ratio between the current pixel's depth and the big blurred depth value. If the local depth is more than twice the distance it actually reduces the amount of AO to avoid overshading distant areas seen through small gaps or windows. We clamp it to only darken - we don't do AO shine at this scale.
+
+Fake GI local AO simply compares the pixel's depth to the smaller blurred depth image. If it's further by a minimum amount then we add a small amount (max .1) to the AO value fast AO uses. This flat amount isn't smooth but is small enough that you can't see the edges. It's a different shape to fast AO so subtly enhances the overall shape and shade of AO (and local bounce light). This is basically free performance-wise.
+
+Fake GI local bounce uses the colour of the smaller blur, sharpens it relative to the current pixel. It then multiplies that light with an estimate of the current pixel's true surface colour, similar to the main large area GI. However, change is applied in proportion to the AO value calculated by fast AO and Fake GI local AO. The effect is stronger indirect bounced light only in concave areas.
+
+HDR, SDR, and non-linear colour
+-------------------------------
+
+For both blending and lighting calculations and we want linear light values. ReShade doesn't give you that - game output is normally non-linear to take best advantage of the limited bits. 16-bit HDR is linear, which is nice. 10 bit HDR uses a special curve call Perceptual Quantizer (PQ) - we have to do the reverse of the PQ operation, do our thing, then reapply PQ. 8-bit SDR (standard dynamic range) uses the sRGB curve - ReShade can take care of that for us. 
+
+Unforuntately, for SDR there's more... In the real world we can see a much wider range of brightness than a standard screen can produce. Before applying the sRGB curves, games apply a tone mapping curve to reduce the dynamic range, especially in bright areas. We don't know what tone mapping algorithm each game uses. Our equation to reverse it is assumes the game uses extended Reinhard tone mapping, because it's simple. With luck it will be close enough to whatever the game uses so we make the lighting look better and not worse. With Cwhite 5 it's actually pretty close to the popular ACES tonemapping curve for bright values but never steeper - so it should work okay on games using that or similar filmic curves. The slightly more conservative default of 3 was chosen as higher values are just too much for games like Deus Ex: Human Revolution. For performance and to avoid causing FXAA issues, this is applied only in the Fake GI parts of the code.
+
+In HDR mode the situation is more complicated. We don't do tone mapping compensation in HDR mode because it's hard to know how much to apply. However, it's probably not needed as in HDR modes there is much less compression of highs anyway due to the higher maximum brightness. Games are supposed to let the display do the tone-mapping, or adapt tone mapping based on the display's capabilities. But if games make it user configured or TVs are trying to do "Intelligent" tone mapping then it will be suboptimal. Both games and TVs should follow HGIG guidelines (https://www.hgig.org/doc/ForBetterHDRGaming.pdf). However, my LG C1 didn't, even in game mode. However, finding and manually selecting HGIG mode in it's menu improved things. 
+
+Ideas for future improvement
+----------------------------
+
+- Fog detect
 - Stop improving this a start playing the games again!
 
-**History**
+History
+-------
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+5.0 (+) Faster AO. (+) Fake GI: better contrast, better colour, if depth is available. (*) Fake GI: large scale AO, enhanced local AO and bounce. (*) HDR mode with automatic detection of format. Automatically uses sRGB curve, PQ curve or linear depending on whether input is 8, 10 or 16 bit. (*) Tone mapping compensation - in SDR mode this gives us better Fake GI. (+) Fix banding artefacts on high sharp values.
+
+4.4_beta (*) Experimental HDR support
 
 4.3 (+) More Fake GI tweaks. It should look better and not have any serious artefacts in difficult scenes. Amount applied is limited to avoid damaging details and it is actually simpler now - gi.w is gone (potentially free for some future use.)
 
@@ -339,5 +403,3 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
-
-	
