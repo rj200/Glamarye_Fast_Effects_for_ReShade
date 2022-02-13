@@ -1,7 +1,7 @@
 Glamarye Fast Effects for ReShade (version 5)
 ======================================
 
-**New in 5 ** HDR support. Faster AO. Better Fake GI, especially if depth is available. Better sharpen.
+**New in 5 ** HDR support. Faster AO. Better Fake GI, especially if depth is available. Better sharpen. Released: 2022-02-13
 
 Author: Robert Jessop 
 
