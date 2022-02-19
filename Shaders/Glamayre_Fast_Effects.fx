@@ -2,10 +2,15 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 5.1)
+Glamarye Fast Effects for ReShade (version 5.1.1)
 ======================================
 
+**New in 5.1.1 ** Tweaked approximate PQ curve.
+
 **New in 5.1 ** Option to tell Glamayre if game is really HDR, or SDR, if it detects 10 bit output. Faster approximate PQ curve for HDR. Fixed artefacts when using Fake GI offset with FSR or DLSS.
+
+**New in 5 ** HDR support. Faster AO. Better Fake GI, especially if depth is available. Better sharpen.
+
 
 Author: Robert Jessop 
 
@@ -356,6 +361,8 @@ History
 -------
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+5.1.1 (+) Tweaked approximate PQ curve constants. Fixed probably insignificant error in (< vs <=) in sRGB curve.
 
 5.1 (x) Option to tell Glamayre if game is really HDR, or SDR, if it detects 10 bit output. (+) Faster approximate PQ curve for HDR. (x) Fixed artefacts when using Fake GI offset with FSR or DLSS (cause was different resolution depth buffer).
 
@@ -714,7 +721,7 @@ float3 toLinear(float3 c) {
 	float3 r = c; 
 	
 #if BUFFER_COLOR_BIT_DEPTH == 10
-	if(__RENDERER__ >= 0xb000 && ten_bit_mode==3 ) {
+	if(__RENDERER__ >= 0xb000 && ten_bit_mode==3  ) {
 		//HDR10 we need to convert between PQ and linear. https://en.wikipedia.org/wiki/Perceptual_quantizer
 		const float m1 = 1305.0/8192.0;
 		const float m2 = 2523.0/32.0;
@@ -733,7 +740,8 @@ float3 toLinear(float3 c) {
 		float3 square = r*r;
 		float3 quad = square*square;
 		float3 oct = quad*quad;
-		r= max(max(square/256.0, quad/7.0), oct);
+		r= max(max(square/340.0, quad/6.0), oct);
+		
 		r*=20;	
 	} else if(ten_bit_mode==1) {
 		r= (r<=.04045) ? (r/12.92) : pow(abs(r+.055)/1.055, 2.4);		
@@ -772,7 +780,7 @@ float3 toOutputFormat(float3 c) {
 		float3 squareroot = sqrt(r);
 		float3 quadroot = sqrt(squareroot);
 		float3 octroot = sqrt(quadroot);
-		r = min(octroot, min(sqrt(sqrt(7.0))*quadroot, 16.0*squareroot ) );
+		r = min(octroot, min(sqrt(sqrt(6.0))*quadroot, sqrt(340.0)*squareroot ) );
 	} else if(ten_bit_mode==1) {
 		r= (r<=.0031308) ? (r*12.92) : (1.055*pow(abs(r), 1.0/2.4) - .055);	
 	} else {
@@ -786,6 +794,7 @@ float3 toOutputFormat(float3 c) {
 #endif
 	return r;
 }
+
 sampler2D samplerColor
 {
 	// The texture to be used for sampling.
