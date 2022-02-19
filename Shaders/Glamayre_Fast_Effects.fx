@@ -2,10 +2,10 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 5)
+Glamarye Fast Effects for ReShade (version 5.1)
 ======================================
 
-**New in 5 ** HDR support. Faster AO. Better Fake GI, especially if depth is available. Better sharpen.
+**New in 5.1 ** Option to tell Glamayre if game is really HDR, or SDR, if it detects 10 bit output. Faster approximate PQ curve for HDR. Fixed artefacts when using Fake GI offset with FSR or DLSS.
 
 Author: Robert Jessop 
 
@@ -39,7 +39,7 @@ Glamarye Fast Effects combines several fast versions of common postprocessing en
 	
 3, 4, 5 & 6 require depth buffer access. 7 improves with depth, but can work without.
 
-High Dynamic Range (HDR) support: Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and adapts automatically.
+High Dynamic Range (HDR) is supported. 
 
 
 Tested in Toussaint (and other places and games.)
@@ -67,8 +67,7 @@ Setup
 	- Use the built-in "Debug: show depth buffer" to check it's there. Close objects should be black and distant ones white.
 	- Use "Debug: show depth and FXAA edges" to check it's aligned.
 	- If it isn't right see [Marty McFly's Depth Buffer guide](https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer).		
-7. High Dynamic Range (HDR). Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and adapts automatically.
-	
+7. High Dynamic Range (HDR). Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and mostly adapts automatically. However 10-bit mode can be HDR or SDR; ReShade cannot detect which yet so you may need to tell Glamayre which via the **Colour Space curve** option.	
 8. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
 	
@@ -95,7 +94,9 @@ Troubleshooting
 	- More guidance on depth buffer setup from Marty McFly: (https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer)
 * No effects do anything. Reset settings to defaults. If using "Detect menus & videos" remember it requires correct depth buffer - depth buffer is just black no effects are applied.
 * HDR issues:
-	- HDR support is new, please report any bugs, including ReShade's log, details of the game and your monitor. 16 bit mode in particular I haven't been able to test properly yet - there is an option, "HDR FP16 color is in nits", which only appears in 16 bit mode - try tweaking it.
+	- HDR support is new, please report any bugs, including ReShade's log, details of the game and your monitor. Games behave differently in and for some cases I'm going on reports from others - I can't test every game. 
+	- In 10 bit mode we assume the game is HDR using PQ curve, but I've had reports some games use the SDR sRGB curve in 10 bit mode. If so you need to change Glamayre's "Colour Space Curve" setting.
+	- In 16 bit mode the "Game's output is in nits" option appears, if effects don't look right - try turning it on/off.
 * Things are too soft/blurry. 
 	- Turn off DOF of turn down DOF blur. Depth of field blurs distant objects but not everyone wants that and if the depth buffer isn't set up well it might blur too much.
 	- Make sure sharpen is on. FXAA may slightly blur fine texture details, sharpen can fix this.
@@ -172,11 +173,15 @@ These only work if you are using the _with Fake GI_ version of the shader. The f
 Output modes
 -----------
 
-**Normal** - Normal output
+**Colour Space Curve** This option only appears if the game's backbuffer is 10 bit. ReShade cannot yet detect if the game is using HDR10 (high-dynamic-range), or just more precise SDR (standard-dynamic-range) maths. HDR and SDR use different non-linear curves to represent colour values. You must select manually if game is running in HDR or SDR (or some effects will look bad.) You may also choose fast or accurate mode. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear colour, just something pretty close. sRGB is the standard for SDR (non-HDR) computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit colour output. HDR uses the PQ perceptual quantizer curve, also referred to by the names of the standards it appears in: SMPTE ST 2084, and Rec 2020/BT.2100. PQ is a more complex and steeper curve; PQ more accurately models the full range of a human eye.
+
+**Debug Modes:**
+
+**Normal output** - Normal Glamayre output
 
 **Debug: show FXAA edges** - Highlights edges that are being smoothed by FXAA. The brighter green the more smoothing is applied. Don't worry if moderate smoothing appears where you don't think it should - sharpening will compensate.
 
-**Debug: show AO shade & GI colour** - Shows amount of shading AO, bounce and Fake GI is adding, against a grey background. Use this if tweaking AO settings to help get them just right see the effect of each setting clearly. However, don't worry if it doesn't look perfect - it exaggerates the effect and many issues won't be noticable in the final image. The best final check is in normal mode.
+**Debug: show AO shade & bounce** - Shows amount of shading AO is adding, against a grey background. Includes coloured AO bounce if enabled. Use this if tweaking AO settings to help get them just right see the effect of each setting clearly. However, don't worry if it doesn't look perfect - it exaggerates the effect and many issues won't be noticable in the final image. The best final check is in normal mode.
 
 **Debug: show depth buffer** - This image shows the distance to each pixel. However not all games provide it and there are a few different formats they can use. Use to check if it works and is in the correct format. Close objects should be black and distant ones white. If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer. If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.		
 
@@ -186,24 +191,12 @@ The rest of the debug options only apply if Fake Global Illumination is enabled 
 
 **Debug: show GI area colour** - Shows the colour of the light from the wider area affecting to each pixel.
 
-**Debug: show GI bounce colour** - Shows the colour of local (short range) bounced light effect.
-
-**Debug: show GI contrast background colour** - A blurred version of the image. Adaptive contrast enhancement works by increasing the difference of each pixel from the same point in this blurred image.
-
-**show GI contrast diff** - Shows the difference how much Adaptive contrast is lightening or darkening each pixel, relative to grey.
-
-**Debug: show GI big AO** - Shows the large scale ambient occlusion effect alone on a grey background.	
-
-**Debug: show GI area depth** - Shows the blurred depth buffer which is used to calculate big AO
-
-**Debug: Splitscreen OFF/ON** - Shows original image unprocessed on left half of screen, and after Glamayre effect on the right.
-
 Advanced Tuning and Configuration
 ------------------------
 
 You probably don't want to adjust these, unless your game has visible artefacts with the defaults.
 
-**Reduce AO in bright areas** - Do not shade very light areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire, but also reduces them in solid white objects. Increase if you see shadows in white smoke, decrease for more shade on light objects. Doesn't help with dark smoke.
+**Reduce AO in bright areas** - Do not shade very light areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire, but also reduces them in solid white objects. Increase if you see shadows in white smoke; decrease for more shade on light objects. Doesn't help with dark smoke.
 
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
@@ -217,7 +210,7 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **Tone mapping compensation** (available for non-HDR output only) - In the real world we can see a much wider range of brightness than a standard screen can produce. Games use tone mapping to reduce the dynamic range, especially in bright areas, to fit into display limits. To calculate lighting effects like Fake GI accurately on SDR images, we want to undo tone mapping first, then reapply it afterwards. Optimal value depends on tone mapping method the game uses. You won't find that info published anywhere for most games. Our compensation is based on Reinhard tone mapping, but hopefully will be close enough if the game uses another curve like ACES. At 5 it's pretty close to ACES in bright areas but never steeper. In HDR modes this is not required.";
 
-**HDR FP16 color is in nits** (available for HDR output only) - Set to true if game output is in nits (100 is white); I hear Epic games may use this. False if it's in scRGB (1 is white)";
+**Game's output is in nits** (available for 16 bit HDR output only) - Set to true if game output is in nits (100 is white); I hear Epic games may use this. False if it's in scRGB (1 is white)";
 
 **FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 
 
@@ -347,7 +340,7 @@ Fake GI local bounce uses the colour of the smaller blur, sharpens it relative t
 HDR, SDR, and non-linear colour
 -------------------------------
 
-For both blending and lighting calculations and we want linear light values. ReShade doesn't give you that - game output is normally non-linear to take best advantage of the limited bits. 16-bit HDR is linear, which is nice. 10 bit HDR uses a special curve call Perceptual Quantizer (PQ) - we have to do the reverse of the PQ operation, do our thing, then reapply PQ. 8-bit SDR (standard dynamic range) uses the sRGB curve - ReShade can take care of that for us. 
+For both blending and lighting calculations and we want linear light values. ReShade doesn't give you that - game output is normally non-linear to take best advantage of the limited bits. 16-bit HDR is linear, which is nice. 10 bit HDR uses a special curve call Perceptual Quantizer (PQ) - we have to do the reverse of the PQ operation, do our thing, then reapply PQ. 8-bit SDR (standard dynamic range) uses the sRGB curve - ReShade can take care of that for us. There's also possibility of 10 bit but with sRGB colour - ReShade can't detect that so we have to ask the user, and we have to do sRGB conversion ourselves.
 
 Unforuntately, for SDR there's more... In the real world we can see a much wider range of brightness than a standard screen can produce. Before applying the sRGB curves, games apply a tone mapping curve to reduce the dynamic range, especially in bright areas. We don't know what tone mapping algorithm each game uses. Our equation to reverse it is assumes the game uses extended Reinhard tone mapping, because it's simple. With luck it will be close enough to whatever the game uses so we make the lighting look better and not worse. With Cwhite 5 it's actually pretty close to the popular ACES tonemapping curve for bright values but never steeper - so it should work okay on games using that or similar filmic curves. The slightly more conservative default of 3 was chosen as higher values are just too much for games like Deus Ex: Human Revolution. For performance and to avoid causing FXAA issues, this is applied only in the Fake GI parts of the code.
 
@@ -363,6 +356,8 @@ History
 -------
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+5.1 (x) Option to tell Glamayre if game is really HDR, or SDR, if it detects 10 bit output. (+) Faster approximate PQ curve for HDR. (x) Fixed artefacts when using Fake GI offset with FSR or DLSS (cause was different resolution depth buffer).
 
 5.0 (+) Faster AO. (+) Fake GI: better contrast, better colour, if depth is available. (*) Fake GI: large scale AO, enhanced local AO and bounce. (*) HDR mode with automatic detection of format. Automatically uses sRGB curve, PQ curve or linear depending on whether input is 8, 10 or 16 bit. (*) Tone mapping compensation - in SDR mode this gives us better Fake GI. (+) Fix banding artefacts on high sharp values.
 
@@ -480,12 +475,39 @@ uniform bool sky_detect <
     ui_type = "radio";
 > = false;
 
+#if BUFFER_COLOR_BIT_DEPTH == 10
+	#if __RENDERER__ >= 0xb000
+		//Probably but not always HDR10 with PQ mode.
+		uniform int ten_bit_mode <
+			ui_category = "Output mode";
+			ui_type = "combo";
+			ui_label = "Colour Space curve (HDR or SDR?)";
+			ui_items = "SDR sRGB (fast)\0"
+					   "SDR sRGB (accurate)\0"
+					   "HDR10 PQ (fast)\0"
+					   "HDR10 PQ (accurate)\0"			   
+					   ;
+			ui_tooltip = "10 bit colour detected. \n\nReShade cannot yet detect if the game is using HDR10 (high-dynamic-range), or just more precise SDR (standard-dynamic-range) maths. HDR and SDR use different non-linear curves to represent colour values. \n\nYou must select manually if game is running in HDR or SDR (or some effects will look bad.) \n\nYou may also choose fast or accurate mode. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear colour, just something pretty close. \n\nThe PQ perceptual quantizer curve is also referred to by the names of the standards it appears in: SMPTE ST 2084, and Rec 2020/BT.2100. \n\nsRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit colour output. PQ is a more complex and steeper curve; PQ more accurately models the full range of a human eye.";
+		> = 2;
+	#else
+		//DirectX 9 and 10 can't support HDR so just give fast/accurate SDR option
+		uniform int ten_bit_mode <
+			ui_category = "Output mode";
+			ui_type = "combo";
+			ui_label = "Colour Space curve (SDR)";
+			ui_items = "sRGB (fast)\0"
+					   "sRGB (accurate)\0"
+					   ;
+			ui_tooltip = "10 bit colour detected, but with DirectX 9 or 10 (so it's SDR, not HDR10/BT.2100). \n\nReShade cannot use hardware sRGB transform in 10 bit mode. You may choose fast or accurate conversion. \n\nA fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear colour, just something pretty close. \n\nsRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2.";
+		> = 0;
+	#endif
+#endif
 
 uniform int debug_mode <
     ui_category = "Output mode";
 	ui_type = "combo";
-    ui_label = "Output mode";
-    ui_items = "Normal\0"
+    ui_label = "Debug mode";
+    ui_items = "Normal output\0"
 	           "Debug: show FXAA edges\0"
 			   "Debug: show AO shade & bounce\0"
 	           "Debug: show depth buffer\0"
@@ -656,8 +678,8 @@ uniform float tone_map < __UNIFORM_SLIDER_FLOAT1
 #if BUFFER_COLOR_BIT_DEPTH == 16
 uniform bool hdr_nits < 
 	ui_category = "Advanced Tuning and Configuration";	
-	ui_tooltip = "True if game output is in nits (100 is SDR white); I hear Epic games may use this. False if it's in scRGB (1 is SDR white)";
-	ui_label = "HDR FP16 color is in nits.";
+	ui_tooltip = "Set to true if game's HDR output is in nits (100 is SDR white); I hear Epic games may use this. False if it's in scRGB (1 is SDR white). \n\n If you have depth but get no visible AO maybe try turning this on. If it's on and you get too strong AO in bright areas then turn it off.";
+	ui_label = "Game's output is in nits";
 > = false;
 #endif
 
@@ -692,6 +714,7 @@ float3 toLinear(float3 c) {
 	float3 r = c; 
 	
 #if BUFFER_COLOR_BIT_DEPTH == 10
+	if(__RENDERER__ >= 0xb000 && ten_bit_mode==3 ) {
 		//HDR10 we need to convert between PQ and linear. https://en.wikipedia.org/wiki/Perceptual_quantizer
 		const float m1 = 1305.0/8192.0;
 		const float m2 = 2523.0/32.0;
@@ -704,6 +727,20 @@ float3 toLinear(float3 c) {
 		
 		//We scale by 20 instead of 10,000 - this is to keep approx brightness similar to SDR (affects debug modes and smoke_fix)
 		r*=20;
+	} else if(__RENDERER__ >= 0xb000 && ten_bit_mode==2) {
+		//Approx PQ. pow is slow, Use square near zero, then x^4 for mid, x^8 for high
+		//I invented this - constants chosen by eye by comparing graphs of the curves. might be possible to optimise further to minimize % error.
+		float3 square = r*r;
+		float3 quad = square*square;
+		float3 oct = quad*quad;
+		r= max(max(square/256.0, quad/7.0), oct);
+		r*=20;	
+	} else if(ten_bit_mode==1) {
+		r= (r<.04045) ? (r/12.92) : pow(abs(r+.055)/1.055, 2.4);		
+	} else {
+		//pow is slow, use square (gamma 2.0)
+		r=max(r/12.92, r*r);
+	}
 #endif
 #if BUFFER_COLOR_BIT_DEPTH == 16
 	if(hdr_nits) r *= 0.01;	
@@ -716,6 +753,7 @@ float3 toOutputFormat(float3 c) {
 	float3 r = c; 
 	
 #if BUFFER_COLOR_BIT_DEPTH == 10
+	if(__RENDERER__ >= 0xb000 && ten_bit_mode==3 ) {
 		//HDR10 we need to convert between PQ and linear. https://en.wikipedia.org/wiki/Perceptual_quantizer
 		const float m1 = 1305.0/8192.0;
 		const float m2 = 2523.0/32.0;
@@ -726,7 +764,21 @@ float3 toOutputFormat(float3 c) {
 		
 		//Unneccessary max commands are to prevent compiler warnings, which might scare users.		
 		float3 powc = pow(max(c,0),m1);
-		r = pow(max( ( c1 + c2*powc ) / ( 1 + c3*powc ), 0 ), m2);		
+		r = pow(max( ( c1 + c2*powc ) / ( 1 + c3*powc ), 0 ), m2);	
+	} else if(__RENDERER__ >= 0xb000 && ten_bit_mode==2) {
+		//Approx PQ. pow is slow, sqrt faster, Use square near zero, then x^4 for mid, x^8 for high 
+		//I invented this - constants chosen by eye by comparing graphs of the curves. might be possible to optimise further to minimize % error.
+		r = r*0.05;
+		float3 squareroot = sqrt(r);
+		float3 quadroot = sqrt(squareroot);
+		float3 octroot = sqrt(quadroot);
+		r = min(octroot, min(sqrt(sqrt(7.0))*quadroot, 16.0*squareroot ) );
+	} else if(ten_bit_mode==1) {
+		r= (r<.0031308) ? (r*12.92) : (1.055*pow(abs(r), 1.0/2.4) - .055);	
+	} else {
+		//pow is slow, , sqrt faster (gamma 2.0)
+		r=min(r*12.92, sqrt(r));
+	}
 #endif
 	
 #if BUFFER_COLOR_BIT_DEPTH == 16
@@ -794,23 +846,6 @@ float pointDepth(float2 texcoord)
 		return depth;
 }
 
-
-float fixDepth(float depth) {		
-		depth *= RESHADE_DEPTH_MULTIPLIER;
-
-#if RESHADE_DEPTH_INPUT_IS_LOGARITHMIC
-		const float C = 0.01;
-		depth = (exp(depth * log(C + 1.0)) - 1.0) / C;
-#endif
-#if RESHADE_DEPTH_INPUT_IS_REVERSED
-		depth = 1 - depth;
-#endif
-		const float N = 1.0;
-		depth /= RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - depth * (RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - N);
-
-		return depth;
-}
-
 float4 fixDepth4(float4 depth) {		
 		depth *= RESHADE_DEPTH_MULTIPLIER;
 
@@ -826,7 +861,6 @@ float4 fixDepth4(float4 depth) {
 
 		return depth;
 }
-
 
 
 #ifndef FAKE_GI_WIDTH
@@ -883,7 +917,7 @@ float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 	
 	//If sky detect is on... we don't want to make tops of buildings blue (or red in sunset) - make sky greyscale
 	if(gi_use_depth) {
-		float depth = fixDepth(pointDepth(texcoord));					
+		float depth = ReShade::GetLinearizedDepth(texcoord);					
 		if(depth>=1) c.rgb=length(c.rgb); //This is actually a little brighter than the sky - but that works well.
 		c.w=depth;
 	}
@@ -932,7 +966,7 @@ float4 bigBlur4_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) :
 
 	
 float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool gi_path) 
-{		
+{	
 	//centre (original pixel)
 	float3 c = getBackBufferLinear(texcoord).rgb;	
 		
@@ -940,7 +974,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	float depth=0;
 	
 	if(ao_enabled || dof_enabled || debug_mode || depth_detect || sky_detect || gi_use_depth) {
-		depth = fixDepth(pointDepth(texcoord));			
+		//We don't use our special sampler here... 
+		depth = ReShade::GetLinearizedDepth(texcoord);
 	}
 	
 	// multiplier to convert rgb to perceived brightness	
@@ -1101,11 +1136,10 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		
 	
 		// Fake Global Illumination - 2D, no depth. Works better than you might expect!
-	
+		
 		//Local brightness
 		float smooth_bright = max(smoothed.r,max(smoothed.g,smoothed.b)) + min(smoothed.r,min(smoothed.g,smoothed.b));
-		
-		
+				
 		//estimate ambient light hitting pixel as blend between local and area brighness.
 		float ambient=lerp(gi_bright,smooth_bright,.5);
 				
