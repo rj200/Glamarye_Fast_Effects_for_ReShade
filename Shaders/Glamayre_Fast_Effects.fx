@@ -736,7 +736,7 @@ float3 toLinear(float3 c) {
 		r= max(max(square/256.0, quad/7.0), oct);
 		r*=20;	
 	} else if(ten_bit_mode==1) {
-		r= (r<.04045) ? (r/12.92) : pow(abs(r+.055)/1.055, 2.4);		
+		r= (r<=.04045) ? (r/12.92) : pow(abs(r+.055)/1.055, 2.4);		
 	} else {
 		//pow is slow, use square (gamma 2.0)
 		r=max(r/12.92, r*r);
@@ -774,7 +774,7 @@ float3 toOutputFormat(float3 c) {
 		float3 octroot = sqrt(quadroot);
 		r = min(octroot, min(sqrt(sqrt(7.0))*quadroot, 16.0*squareroot ) );
 	} else if(ten_bit_mode==1) {
-		r= (r<.0031308) ? (r*12.92) : (1.055*pow(abs(r), 1.0/2.4) - .055);	
+		r= (r<=.0031308) ? (r*12.92) : (1.055*pow(abs(r), 1.0/2.4) - .055);	
 	} else {
 		//pow is slow, , sqrt faster (gamma 2.0)
 		r=min(r*12.92, sqrt(r));
