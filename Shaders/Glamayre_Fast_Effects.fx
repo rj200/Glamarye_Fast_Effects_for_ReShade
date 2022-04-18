@@ -2,14 +2,10 @@
 | :: Description :: |
 '-------------------/
 
-Glamarye Fast Effects for ReShade (version 5.1.1)
+Glamarye Fast Effects for ReShade (version 6.0)
 ======================================
 
-**New in 5.1.1 ** Tweaked approximate PQ curve.
-
-**New in 5.1 ** Option to tell Glamayre if game is really HDR, or SDR, if it detects 10 bit output. Faster approximate PQ curve for HDR. Fixed artefacts when using Fake GI offset with FSR or DLSS.
-
-**New in 5 ** HDR support. Faster AO. Better Fake GI, especially if depth is available. Better sharpen.
+**New in 6.0:** New sharpening equation that gives cleaner shapes. New and improved Fake GI equations - more realistic colors calculation, and reduce effect of near objects on far ones. Optimized AO implementation for default AO quality level. Added "Cinematic DOF safe mode" option which disables AO and tweaks Fake GI to avoid artefacts in scenes that have a strong depth of field (out of focus background) effect. Allow tonemapping compensation in 10-bit SDR mode. Tweaked adaptive contrast to not overbrighten. 16 bit HDR mode fix for oversaturated GI color. HDR setup now uses ReShade's new BUFFER_COLOR_SPACE definition to help detect right default.
 
 
 Author: Robert Jessop 
@@ -29,17 +25,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 About
 -----
 	
-Designed for speed and quality, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms. Global Illumination is many times faster than other GI shaders, but it's not really the same - it's a fake 2D rough approximation (though it works surprising well!)
+Designed for speed and quality, this shader for ReShade is for people who can't just run everything at max settings and want good enough post-processing without costing too much framerate. The FXAA quite a bit faster than as standard FXAA, and ambient occlusion more than twice as fast as other algorithms. Global Illumination is many times faster than other GI shaders, but it's not really the same - it's mostly a fake 2D rough approximation (though it works surprising well!) 
 	
 Glamarye Fast Effects combines several fast versions of common postprocessing enhancements in one shader for speed. Each can be enabled or disabled separately.
 	
-1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed so smoothly.
+1. Fast FXAA (fullscreen approximate anti-aliasing). Fixes jagged edges. Almost twice as fast as normal FXAA, and it preserves fine details and GUI elements a bit better. However, long edges very close to horizontal or vertical aren't fixed so smoothly. 
 2. Intelligent Sharpening. Improves clarity of texture details.
 3. Fast ambient occlusion. Shades concave areas that would receive less scattered ambient light. This is faster than typical implementations (e.g. SSAO, HBAO+). The algorithm gives surprisingly good quality with few sample points. It's designed for speed, not perfection - for highest possible quality you might want to try the game's built-in AO options, or a different ReShade shader instead. There is also the option, AO shine, for it to highlight convex areas, which can make images more vivid, adds depth, and prevents the image overall becoming too dark. 
 4. Subtle Depth of Field. Softens distant objects. A sharpened background can distract from the foreground action; softening the background can make the image feel more real too. 
 5. Detect Menus and Videos. Depending on how the game uses the depth buffer it may be possible to detect when not in-game and disable the effects.
 6. Detect Sky. Depending on how the game uses the depth buffer it may be possible to detect background images behind the 3D world and disable effects for them.
-7. Fake Global Illumination. Attempts to look like fancy GI shaders but using very simple approximations instead. Not the most realistic solution but very fast. It makes the lighting look less flat; you can even see bright colours reflecting off other surfaces in the area. The main part of it can be run in 2D mode for when depth info isn't available. With depth it can approximate local and distant indirect illumination even better, and add large scale ambient occlusion.
+7. Fake Global Illumination. Attempts to look like fancy GI shaders but using very simple approximations instead. Not the most realistic solution but very fast. It makes the lighting look less flat; you can even see bright colors reflecting off other surfaces in the area. The main part of it can be run in 2D mode for when depth info isn't available. With depth it can approximate local and distant indirect illumination even better, and add large scale ambient occlusion.
 8. Adaptive contrast enchancement.
 	
 3, 4, 5 & 6 require depth buffer access. 7 improves with depth, but can work without.
@@ -49,14 +45,14 @@ High Dynamic Range (HDR) is supported.
 
 Tested in Toussaint (and other places and games.)
 
-![Screenshot](Glamayre%20v5.0%20double%20strength.png "Beauclair, The Witcher 3")
+![Screenshot](Glamayre%20v6.0%20double%20strength.png "Beauclair, The Witcher 3")
 
-This was taken in version 5 with most effects' strengths doubled. Default settings are more subtle than this.
+This was taken in version 6 with most effects' strengths doubled to make the effects clear. Default settings are more subtle than this.
 
-Comparison (version 5)
+Comparison (version 6)
 ----------
 
-[Comparison of v5 default, increase strength, no postprocessing, and Witcher 3's builtin FXAA, Sharpen and AO](https://imgsli.com/OTU0ODI)
+[Comparison of v6 default, double strength effects, no postprocessing, and Witcher 3's builtin FXAA, Sharpen and HBAO+](https://imgsli.com/MTA0Njg3)
 
 	
 Setup
@@ -72,7 +68,7 @@ Setup
 	- Use the built-in "Debug: show depth buffer" to check it's there. Close objects should be black and distant ones white.
 	- Use "Debug: show depth and FXAA edges" to check it's aligned.
 	- If it isn't right see [Marty McFly's Depth Buffer guide](https://github.com/martymcmodding/ReShade-Guide/wiki/The-Depth-Buffer).		
-7. High Dynamic Range (HDR). Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and mostly adapts automatically. However 10-bit mode can be HDR or SDR; ReShade cannot detect which yet so you may need to tell Glamayre which via the **Colour Space curve** option.	
+7. High Dynamic Range (HDR). Glamayre detects HDR based on whether the game's output is 8, 10 or 16 bits, and mostly adapts automatically. However 10-bit mode can be HDR or SDR; ReShade cannot detect which yet so you may need to tell Glamayre which via the **Color Space curve** option.	
 8. (Optional) Adjust based on personal preference and what works best & looks good in the game. 
 	- Note: turn off "performance mode" in Reshade (bottom of panel) to configure, Turn it on when you're happy with the configuration.  
 	
@@ -88,7 +84,7 @@ Troubleshooting
 	- If shadows in the wrong places then depth buffer needs configuring (see below)
 	- If you see other artefacts (e.g. shadows look bad) then options are:
 		- turn down the strength
-		- increase the quality by setting FAST_AO_POINTS to 8 or 12.
+		- increase the quality by setting FAST_AO_POINTS to 8.
 		- Try tweaking the AO options in Advanced Tuning and configuration.
 * Depth buffer issues:
 	- Check ReShade's supported games list to see any notes about depth buffer first. 
@@ -100,7 +96,7 @@ Troubleshooting
 * No effects do anything. Reset settings to defaults. If using "Detect menus & videos" remember it requires correct depth buffer - depth buffer is just black no effects are applied.
 * HDR issues:
 	- HDR support is new, please report any bugs, including ReShade's log, details of the game and your monitor. Games behave differently in and for some cases I'm going on reports from others - I can't test every game. 
-	- In 10 bit mode we assume the game is HDR using PQ curve, but I've had reports some games use the SDR sRGB curve in 10 bit mode. If so you need to change Glamayre's "Colour Space Curve" setting.
+	- In 10 bit mode we assume the game is HDR using PQ curve, but I've had reports some games use the SDR sRGB curve in 10 bit mode. If so you need to change Glamayre's "Color Space Curve" setting.
 	- In 16 bit mode the "Game's output is in nits" option appears, if effects don't look right - try turning it on/off.
 * Things are too soft/blurry. 
 	- Turn off DOF of turn down DOF blur. Depth of field blurs distant objects but not everyone wants that and if the depth buffer isn't set up well it might blur too much.
@@ -150,18 +146,16 @@ Effects Intensity
 
 **AO shine** - Normally AO just adds shade; with this it also brightens convex shapes. Maybe not realistic, but it prevents the image overall becoming too dark, makes it more vivid, and makes some corners clearer. Higher than 0.5 looks a bit unrealistic.
 
-**DOF blur** - Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).
-
-**AO Quality** - Due to compatibility with older drivers and D3D9 games this option has been removed - however you can still increase quality by changing the preprocessor definition FAST_AO_POINTS (defauly is 6, try 12 for best quality.)
+**DOF blur** - Depth of field. Applies subtle smoothing to distant objects. It's a small effect (1 pixel radius). At the default it more-or-less cancels out sharpenning, no more.
 
 Fake Global Illumination Settings
 ------------------------
 
 These only work if you are using the _with Fake GI_ version of the shader. The first three options work even without depth information.
 
-**Fake GI lighting strength** - Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image.
+**Fake GI lighting strength** - Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image. Usually safe to increase, except in games with unusually vibrant colors.
 
-**Fake GI saturation" - Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours.
+**Fake GI saturation" - Fake Global Illumination can exaggerate colors in the image too much. Decrease this to reduce the color saturation of the added light. Increase for more vibrant colors.
 
 **Adaptive contrast enhancement** - Increases contrast relative to average light in surrounding area. Fake Global Illumination can reduce overall contrast; this setting compensates for that. It actually may be useful on it's own with lighting strength zeroed - it can improve contrast and clarity of any image. Recommendation: set to roughly half of GI lighting strength.
 
@@ -171,14 +165,23 @@ These only work if you are using the _with Fake GI_ version of the shader. The f
 
 **Fake GI local AO strength (requires depth)** - Provides additional ambient occlusion with a flatter shape, subtly enhancing Fast Ambient Occlusion and bounce lighting, at very little cost. This Higher = darker shadows. This would have visible artefacts at high strength; therefore maximum shade added is very small. Use in combination with normal ambient occlusion, not instead of it.
 
-**Fake GI local bounce strength (requires depth) ** - A bright red pillar next to a white wall will make the wall a bit red, but how red? It uses local depth and colour information to approximate short-range bounced light. It only affects areas made darker by Glamayre's fast ambient occlusion and Fake GI local AO (not big AO). Recommendation: keep near 1.
+**Fake GI local bounce strength (requires depth) ** - A bright red pillar next to a white wall will make the wall a bit red, but how red? It uses local depth and color information to approximate short-range bounced light. It only affects areas made darker by Glamayre's fast ambient occlusion and Fake GI local AO (not big AO). Recommendation: keep near 1.
 
-**Fake GI offset** - Fake global illumination uses a very blurred version of the image to collect approximate light from a wide area around each pixel. If use of depth is enabled, it adjusts the offset based on the angle of the local surface. This makes it better pick up colour from facing surfaces, but if set too big it may miss nearby surfaces in favour of further ones. The value is the maximum offset, as a fraction of screen size.
+**Fake GI offset** - Fake global illumination uses a very blurred version of the image to collect approximate light from a wide area around each pixel. If use of depth is enabled, it adjusts the offset based on the angle of the local surface. This makes it better pick up color from facing surfaces, but if set too big it may miss nearby surfaces in favour of further ones. The value is the maximum offset, as a fraction of screen size.
+
+
+**Cinematic DOF safe mode** - The depth of field effect (out of focus background) is now common in games and sometimes cannot be disabled. It interacts badly with AO and GI effects using depth. Enabling this tweaks effects to use a blurred area depth instead of the depth at every pixel, which makes Fake GI depth effects usable in such games.
+
+
+Color space options
+-------------------
+
+**color space curve (HDR or SDR?)** High dynamic range (HDR) and standard dynamic range (SDR) use different non-linear curves to represent color values. ReShade pre-5.1 cannot detect color space. ReShade 5.1 can but does update shaders if it changes while running the game. Glamayre tries to detect the right default for you, but for 10-bit HDR mode you pre-5.1 you need to manually select HDR10, and if colour spaces changes in game (e.g. you enable/disable HDR) you may need to manually select too. If set incorrectly some effects will look bad (e.g. strong brightness/color changes in effects that should be more subtle.) Recommendation: If it's Unknown but your game and screen are in HDR mode then select HDR10 ST2084. In most other cases the default should be correct. If in doubt, pick the option that where the images changes the least when you enable glamayre.  sRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit color output.\n\nThe Perceptual Quantizer (PQ) curve from the ST2084 HDR standard is a more complex and steeper curve; it more accurately models the full range of a human eye when you only have 10 bits of precision. scRGB is used in games with 16-bit HDR; it's simply linear - value in the computer is directly proportional to the light on screen.
+
+**Transfer Function precision** Correct color space conversions (especially PQ) can be slow. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Most effects don't need perfect linear color, just something pretty close. However, you may select accurate for minor quality improvement.
 
 Output modes
 -----------
-
-**Colour Space Curve** This option only appears if the game's backbuffer is 10 bit. ReShade cannot yet detect if the game is using HDR10 (high-dynamic-range), or just more precise SDR (standard-dynamic-range) maths. HDR and SDR use different non-linear curves to represent colour values. You must select manually if game is running in HDR or SDR (or some effects will look bad.) You may also choose fast or accurate mode. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear colour, just something pretty close. sRGB is the standard for SDR (non-HDR) computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit colour output. HDR uses the PQ perceptual quantizer curve, also referred to by the names of the standards it appears in: SMPTE ST 2084, and Rec 2020/BT.2100. PQ is a more complex and steeper curve; PQ more accurately models the full range of a human eye.
 
 **Debug Modes:**
 
@@ -186,7 +189,7 @@ Output modes
 
 **Debug: show FXAA edges** - Highlights edges that are being smoothed by FXAA. The brighter green the more smoothing is applied. Don't worry if moderate smoothing appears where you don't think it should - sharpening will compensate.
 
-**Debug: show AO shade & bounce** - Shows amount of shading AO is adding, against a grey background. Includes coloured AO bounce if enabled. Use this if tweaking AO settings to help get them just right see the effect of each setting clearly. However, don't worry if it doesn't look perfect - it exaggerates the effect and many issues won't be noticable in the final image. The best final check is in normal mode.
+**Debug: show AO shade & bounce** - Shows amount of shading AO is adding, against a grey background. Includes colored AO bounce if enabled. Use this if tweaking AO settings to help get them just right see the effect of each setting clearly. However, don't worry if it doesn't look perfect - it exaggerates the effect and many issues won't be noticable in the final image. The best final check is in normal mode.
 
 **Debug: show depth buffer** - This image shows the distance to each pixel. However not all games provide it and there are a few different formats they can use. Use to check if it works and is in the correct format. Close objects should be black and distant ones white. If it looks different it may need configuration - Use ReShade's DisplayDepth shader to help find and set the right "global preprocessor definitions" to fix the depth buffer. If you get no depth image, set Depth of Field, Ambient Occlusion and Detect Menus to off, as they won't work.		
 
@@ -194,12 +197,14 @@ Output modes
 
 The rest of the debug options only apply if Fake Global Illumination is enabled (_with Fake GI_ version of Glamayre).
 
-**Debug: show GI area colour** - Shows the colour of the light from the wider area affecting to each pixel.
+**Debug: show GI area color** - Shows the color of the light from the wider area affecting to each pixel.
 
 Advanced Tuning and Configuration
 ------------------------
 
 You probably don't want to adjust these, unless your game has visible artefacts with the defaults.
+
+**AO bigger dither** Ambient occlusion dither. Dithering means adjacent pixels shade is calculated using different nearby depth samples. If you look closely you may see patterns of alternating light/dark pixels. If checked, AO uses an 8 pixel dither pattern; otherwise it uses a 2 pixel pattern. From a distance, bigger dither gives better shadow shapes overall; however, you will see annoying repeating patterns up close. Recommendation: turn on if you have a high enough screen resolution and far enough distance from your screen that you cannot make out individual pixels by eye. The performance is about the same either way. Default: on if resultion 4k or higher.
 
 **Reduce AO in bright areas** - Do not shade very light areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire, but also reduces them in solid white objects. Increase if you see shadows in white smoke; decrease for more shade on light objects. Doesn't help with dark smoke.
 
@@ -215,9 +220,9 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **Tone mapping compensation** (available for non-HDR output only) - In the real world we can see a much wider range of brightness than a standard screen can produce. Games use tone mapping to reduce the dynamic range, especially in bright areas, to fit into display limits. To calculate lighting effects like Fake GI accurately on SDR images, we want to undo tone mapping first, then reapply it afterwards. Optimal value depends on tone mapping method the game uses. You won't find that info published anywhere for most games. Our compensation is based on Reinhard tone mapping, but hopefully will be close enough if the game uses another curve like ACES. At 5 it's pretty close to ACES in bright areas but never steeper. In HDR modes this is not required.";
 
-**Game's output is in nits** (available for 16 bit HDR output only) - Set to true if game output is in nits (100 is white); I hear Epic games may use this. False if it's in scRGB (1 is white)";
+**FAST_AO_POINTS** (preprocessor definition - bottom of GUI.) Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Valid range: 2-16. Recommended: 4, 6 or 8 as these have optimized fast code paths. 
 
-**FAST_AO_POINTS** (preprocessor definition - bottom of GUI). Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Minimum is 2, Maximum 16. 
+**HDR_WHITELEVEL** (preprocessor definition - bottom of GUI.) This is the brightness in nits of white (HDR can go brighter). If you have a similar setting in game then match this to it for maximum accuracy. If unshadowed areas in the "show AO shade" debug mode are much darker than the overall game then you maybe need to increase this. If the game's 16-bit output is actually in nits, not scRGB, then set this to 1 (I hear some Epic games may do this but have not seen it).
 
 Tips
 ----
@@ -240,56 +245,49 @@ Tips
 Benchmark
 ---------
 
-TODO: redo this for current version.
-
 - Game: Witcher 3 
-- Scene: [Beauclair looking at the water feature opposite the bank](/Benchmark%20Location.png) 
-- Settings: 1080p, Graphics settings low
+- Scene: [Beauclair by the lake, looking into town](/Benchmark%20Location.jpg) 
+- Settings: 1080p, Graphics settings: High but hairworks off.
 - Hardware: Razer Blade Stealth 13 Late 2019 Laptop with NVIDIA GeForce GTX 1650 with Max-Q design
-- Shader version: 1.0 (didn't include fake global illumination effect)
+- Shader version: 6.0
 
 **Baseline**
 
 	FPS	Settings
-	86	No post-processing
+	77	No post-processing
 
-**Fast_FXAA_sharpen_DOF_and_AO v1.0 results (previous name for Glamarye Fast Effects)**
+**Glamayre 6.0 results**
 
 	FPS	Settings
-	82	v1.0 defaults (Fast FXAA + sharpen + Fast AO + bounce + DOF)
-	84	Fast FXAA only
-	84	Fast FXAA + sharpen
-	83	Fast AO only
-	82	Fast AO only, FAST_AO_POINTS 12
-	83	Fast AO + bounce
-	81	Fast AO + bounce, FAST_AO_POINTS 12
-	80	v1.0 all max, FAST_AO_POINTS 12
-	
-**Note**: Full benchmark with v3.0 not done yet. Fake Global Illumination wasn't in 1.0 and the default FAST_AO_POINTS was slightly lower (6). V2 is 1-2 FPS slower in its default settings, but if configured like 1.0 is faster.
+	72	defaults (with Fake GI using depth)
+	73	defaults (without Fake GI)
+	75	Fast FXAA only
+	74  Fast FXAA + sharpen
+	74	Fast AO only	
+	75	Fake GI only (no depth)
+	74	Fake GI only (using depth)
 
 **Witcher 3 builtin post-processing**
 
 	FPS	Settings
-	83	Anti-Aliasing
-	82	Anti-Aliasing, sharpening
-	79	SSAO
-	74	Anti-Aliasing, sharpening, SSAO
-	72	HBAO+
-	68	Anti-Aliasing, sharpening, HBAO+
+	73	Anti-Aliasing
+	72	Anti-Aliasing + sharpening
+	71	SSAO
+	68	Anti-Aliasing + sharpening + SSAO
+	66	HBAO+
+	
 
 **Comparison to other Reshade shaders**
 
-SMAA and FXAA are anti-aliasing. MXAO and SSDO and ambient occlusion.
+SMAA and FXAA are anti-aliasing. MXAO is a popular ambient occlusion shader.
 
 	FPS	Shader and settings
-	81	SMAA
-	82	FXAA
-	75	MXAO very low (4 samples)
-	71	MXAO default (16 samples)
-	69	MXAO default plus MXAO_ENABLE_IL on
-	68	PPFX SSDO
-	67	FXAA + MXAO (default quality)
-	64	FXAA + PPFX SSDO
+	71	SMAA
+	73	FXAA
+	68	MXAO very low (4 samples)
+	65	MXAO default (16 samples)
+	63	MXAO default plus MXAO_ENABLE_IL on
+	
 
 Similar results (relatively) are seen in other locations and graphic settings and resolutions.
 	
@@ -308,7 +306,7 @@ The smooth option is the four nearby samples minus the current pixel. Effectivel
 	2 0 2  / 12;
 	1 2 1
 	
-Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen small details in textures but not sharpen object edges, creating annoying lines. To achieve this it calculates two sharp options: It uses the two close points in the diamond FXAA uses, and calculates the difference to the current pixel for each - if both are positive or both negative then if adds them together and sharpens the texture; if the signs don't match then we have an edge and it doesn't sharpen. It darkens pixels more than it brightens them; this looks more realistic - the amount of brightening is automatically adjusted based on the light, so in dark areas pixels can become lighter, but it bright areas they cannot. FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely.
+Sharpening increases the difference between the centre pixel and it's neighbors. We want to sharpen details in textures without oversharpening object edges or making aliasing artefacts worse. Simple sharpening increases the difference between the current pixel and the surrounding ones. We add a simple but novel adjustment - we look at the 4 surrounding diagonals , add the middle two values and subtract the two outliers - this creates nicer shapes and avoids over brightening or darkening of fine details by pushing surrounding pixels a bit more in the opposite direction. To avoid oversharpening high contrast details and saturating or clamping we use a curve similar to a reinhard tone mapper to reduce the sharpening as it approaches 0 or 1. Fast FXAA is calculated before but applied after sharpening. If FXAA decides to smooth a pixel the maximum amount then sharpening is cancelled out completely. This prevents us from fighting FXAA and sharpening aliasing artefacts. 
 	
 Depth of field is subtle; this implementation isn't a fancy cinematic focus effect. Good to enable if using sharpening, as it takes the edge of the background and helps emphasise the foreground. If DOF blur is set to zero, then it just reduces the strength of sharpening, so sharpening gradually disappears in the distance. If DOF blur is higher, it also blurs pixels, increasing blur with distance - at 1 pixels at maximum depth as set to the smooth value. The total change in each pixel is limited to 50% to reduce problems at near-to-far edges when blur is high.
 		
@@ -326,26 +324,26 @@ Amazingly, this gives quite decent results even with very few points in the circ
 There are two optional variations that change the Fast Ambient Occlusion algorithm:
 
 1. Shine. Normally AO is used only to make pixels darker. With the AO Shine setting (which is set quite low by default), we allow AO amount to be negative. This brightens convex areas (corners and bumps pointing at the camera.) Not super realistic but it really helps emphasise the shapes. This is basically free - instead of setting negative AO to zero we multiply it by ao_shine_strength.
-2. Bounce lighting. This is good where two surfaces of different colour meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We use same wide area brightness from the Fake GI algorithm to estimate the ambient light and therefore the unlit colour of the pixel, and therefore how much light it will reflect. We blur the image to get the average light nearby. We multiply the unlit pixel colour with the nearby light to get the light bounced. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
+2. Bounce lighting. This is good where two surfaces of different color meet. However, most of the time this has little effect so it's not worth sampling many nearby points. We use same wide area brightness from the Fake GI algorithm to estimate the ambient light and therefore the unlit color of the pixel, and therefore how much light it will reflect. We blur the image to get the average light nearby. We multiply the unlit pixel color with the nearby light to get the light bounced. The value is multiplied by our AO value too, which is a measure of shape and makes sure only concave areas get bounced light added.
 
-Fake Global Illumination without depth enabled is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we downsample and blur the main image to get the overall colour of light in each area. The blurred and original pixel's brightness are used together to estimate the current pixel's true surface colour; is likely a light surface in shadow, or a dark surface in the light? We reduce the saturation of the blurred colour (to prevent oversaturated colour in the output.) The pixel colour is multiplied by the blurred area light and blended with the pixel. We clamp the maximum brightness change to prevent darkenning or washing out details. Overall the image appears less flat - even if the illumination isn't always realistic, the subtle variations in shade help make the image seem more real.
+Fake Global Illumination without depth enabled is a quite simple 2D approximation of global illumination. Being 2D it's not very realistic but is fast. First we downsample and blur the main image to get the overall color of light in each area. Then at each pixel we tweak the area light brighness to be at least as bright as the current pixel, and smoothly reducing it as it approaches twice the brightness; this prevents loss of image contrast and overbrightening dark objects. The blurred and original pixel's brightness are used together to estimate the current pixel's true surface color; is likely a light surface in shadow, or a dark surface in the light? We reduce the saturation of the area color, reducing it more if it's dark relative to the current pixel (to prevent oversaturated output.) The pixel color is multiplied by the blurred area light and blended with the pixel. Overall the image appears less flat - even if the illumination isn't always realistic (it doesn't really know the shape of things), the subtle variations in shade and subtle color changes help make the image seem more real.
 
 For the rest of the effects we actually use two levels of blur - the big one, and a smaller, less smooth one which is simply a 2.5 MIP level read of the first step of our blur. 
 
 Adaptive Contrast enhancement uses our the average of our two blurred images as a centre value and moves each pixel value away from it. 
 
-If depth is enabled then we also include a depth channel in the blurred images. Also, where depth==1 (sky) we brighten and completely desaturate the colour image - this makes sky and rooftops look better. If depth is enabled and Fake GI offset set then we use ddx & ddy to read the local depth buffer surface slope and move the point we sample the big blur in the direction away from the camera.
+If depth is enabled then we also include a depth channel in the blurred images. Also, where depth==1 (sky) we brighten and completely desaturate the color image - this makes sky and rooftops look better. If depth is enabled and Fake GI offset set then we use ddx & ddy to read the local depth buffer surface slope and move the point we sample the big blur in the direction away from the camera.
 
 Big AO (large scale ambient occlusion) simply uses the ratio between the current pixel's depth and the big blurred depth value. If the local depth is more than twice the distance it actually reduces the amount of AO to avoid overshading distant areas seen through small gaps or windows. We clamp it to only darken - we don't do AO shine at this scale.
 
 Fake GI local AO simply compares the pixel's depth to the smaller blurred depth image. If it's further by a minimum amount then we add a small amount (max .1) to the AO value fast AO uses. This flat amount isn't smooth but is small enough that you can't see the edges. It's a different shape to fast AO so subtly enhances the overall shape and shade of AO (and local bounce light). This is basically free performance-wise.
 
-Fake GI local bounce uses the colour of the smaller blur, sharpens it relative to the current pixel. It then multiplies that light with an estimate of the current pixel's true surface colour, similar to the main large area GI. However, change is applied in proportion to the AO value calculated by fast AO and Fake GI local AO. The effect is stronger indirect bounced light only in concave areas.
+Fake GI local bounce uses the color of the smaller blur, sharpens it relative to the current pixel. It then multiplies that light with an estimate of the current pixel's true surface color, similar to the main large area GI. However, change is applied in proportion to the AO value calculated by fast AO and Fake GI local AO. The effect is stronger indirect bounced light only in concave areas.
 
-HDR, SDR, and non-linear colour
+HDR, SDR, and non-linear color
 -------------------------------
 
-For both blending and lighting calculations and we want linear light values. ReShade doesn't give you that - game output is normally non-linear to take best advantage of the limited bits. 16-bit HDR is linear, which is nice. 10 bit HDR uses a special curve call Perceptual Quantizer (PQ) - we have to do the reverse of the PQ operation, do our thing, then reapply PQ. 8-bit SDR (standard dynamic range) uses the sRGB curve - ReShade can take care of that for us. There's also possibility of 10 bit but with sRGB colour - ReShade can't detect that so we have to ask the user, and we have to do sRGB conversion ourselves.
+For both blending and lighting calculations and we want linear light values. ReShade doesn't give you that - game output is normally non-linear to take best advantage of the limited bits. 16-bit HDR is linear, which is nice. 10 bit HDR uses a special curve call Perceptual Quantizer (PQ) - we have to do the reverse of the PQ operation, do our thing, then reapply PQ. 8-bit SDR (standard dynamic range) uses the sRGB curve - ReShade can take care of that for us. There's also possibility of 10 bit but with sRGB color - ReShade can't detect that so we have to ask the user, and we have to do sRGB conversion ourselves.
 
 Unforuntately, for SDR there's more... In the real world we can see a much wider range of brightness than a standard screen can produce. Before applying the sRGB curves, games apply a tone mapping curve to reduce the dynamic range, especially in bright areas. We don't know what tone mapping algorithm each game uses. Our equation to reverse it is assumes the game uses extended Reinhard tone mapping, because it's simple. With luck it will be close enough to whatever the game uses so we make the lighting look better and not worse. With Cwhite 5 it's actually pretty close to the popular ACES tonemapping curve for bright values but never steeper - so it should work okay on games using that or similar filmic curves. The slightly more conservative default of 3 was chosen as higher values are just too much for games like Deus Ex: Human Revolution. For performance and to avoid causing FXAA issues, this is applied only in the Fake GI parts of the code.
 
@@ -362,11 +360,13 @@ History
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+6.0 (+) Fake GI: new equations for more realistic shading, fixing oversaturation of colors. Fake GI: reduced effect of close objects on distant ones. AO: optimized implementation for FAST_AO_POINTS==6 (the default) saves a few instructions. New sharpening equation that gives cleaner shapes - around points and fine lines it changes the surrounding pixels as much as the detail. Both Fake GI and sharpening now eases off smoothly near min and max instead of just clamping. (*) Added "Cinematic DOF safe mode" option which disables AO and tweaks Fake GI to avoid artefacts in scenes that have a strong depth of field (out of focus background) effect. Allow tonemapping compensation in 10-bit SDR mode. Tweaked adaptive contrast to not overbrighten. 16 bit color mode fix for oversaturated GI color. HDR setup now uses ReShade's new BUFFER_COLOR_SPACE definition to help detect right default. Reworked all HDR code and settings.
+
 5.1.1 (+) Tweaked approximate PQ curve constants. Fixed probably insignificant error in (< vs <=) in sRGB curve.
 
 5.1 (x) Option to tell Glamayre if game is really HDR, or SDR, if it detects 10 bit output. (+) Faster approximate PQ curve for HDR. (x) Fixed artefacts when using Fake GI offset with FSR or DLSS (cause was different resolution depth buffer).
 
-5.0 (+) Faster AO. (+) Fake GI: better contrast, better colour, if depth is available. (*) Fake GI: large scale AO, enhanced local AO and bounce. (*) HDR mode with automatic detection of format. Automatically uses sRGB curve, PQ curve or linear depending on whether input is 8, 10 or 16 bit. (*) Tone mapping compensation - in SDR mode this gives us better Fake GI. (+) Fix banding artefacts on high sharp values.
+5.0 (+) Faster AO. (+) Fake GI: better contrast, better color, if depth is available. (*) Fake GI: large scale AO, enhanced local AO and bounce. (*) HDR mode with automatic detection of format. Automatically uses sRGB curve, PQ curve or linear depending on whether input is 8, 10 or 16 bit. (*) Tone mapping compensation - in SDR mode this gives us better Fake GI. (+) Fix banding artefacts on high sharp values.
 
 4.4_beta (*) Experimental HDR support
 
@@ -392,7 +392,7 @@ History
 
 2.0 (*) Fake Global Illumination! Even better than the real thing (if speed is your main concern!)
 
-1.2.3 (x) Regression fix: AO shade colour when not using bounce. Actually tweaked this whole section so it works like bounce lighting but using the current pixel instead of reading nearby ones, and simplified the code in places too. 
+1.2.3 (x) Regression fix: AO shade color when not using bounce. Actually tweaked this whole section so it works like bounce lighting but using the current pixel instead of reading nearby ones, and simplified the code in places too. 
 
 1.2.2 (+) bounce_lighting performance improvement!
 
@@ -432,11 +432,89 @@ namespace Glamarye_Fast_Effects
 {
 
 
-// This is your quality/speed trade-off. Miniumum 2, maximum 16. 4 and 8 are good options as they have special optimized code.
+// This is your quality/speed trade-off. Miniumum 2, maximum 16. 4, 6 and 8 are good options as they have special optimized code.
 //This was a GUI slider, but it caused problems with DirectX 9 games failing to compile it. Have to use pre-processor.
 #ifndef FAST_AO_POINTS
 	#define FAST_AO_POINTS 6
 #endif
+
+
+//This is the brightness in nits of diffuse white (HDR can go brighter in lights and reflections). If you have a similar setting in game then match this to it for maximum accuracy.
+//If unshadowed areas in the "show AO shade" debug mode is much darker then the overall game then you maybe need to increase this.
+//If the game's 16-bit output is actually in nits, not scRGB, then set this to 1 (I hear some Epic games may do this but have not seen it).
+
+//Based on ITU specification BT.2408 our default is 203.
+#ifndef HDR_WHITELEVEL
+	#define HDR_WHITELEVEL 203
+#endif
+
+
+
+//New in ReShade 5.1: Added "BUFFER_COLOR_SPACE" preprocessor definition which contains the color space type for presentation (0 = unknown, 1 = sRGB, 2 = scRGB, 3 = HDR10 ST2084, 4 = HDR10 HLG)
+
+#ifndef BUFFER_COLOR_SPACE
+	#if BUFFER_COLOR_BIT_DEPTH == 8
+		#define GLAMAYRE_COLOR_SPACE 1
+	#elif BUFFER_COLOR_BIT_DEPTH == 16
+		#define GLAMAYRE_COLOR_SPACE 2
+	#elif __RENDERER__ < 0xb000 
+		//Version of DirectX that only supports SDR.
+		#define GLAMAYRE_COLOR_SPACE 1
+	#else		
+		uniform int select_color_space 
+		<
+			ui_category = "Color Space";
+			ui_type = "combo";
+			ui_label = "Color Space curve (HDR or SDR?)";
+			ui_items = "sRGB (PC standard for non-HDR screens)\0"
+					   "HDR10 ST2084 (PQ curve)\0";
+			ui_tooltip = "High dynamic range (HDR) and standard dynamic range (SDR) use different non-linear curves to represent color values. \n\nReShade pre-5.1 cannot detect color space. Is the game running with HDR10? \n\nIf set incorrectly some effects will look bad (e.g. strong brightness/color changes in effects that should be more subtle.)\n\nRecommendation: If your game and screen are in HDR mode then select HDR10 ST2084. If in doubt, pick the option that where the images changes the least when you enable glamayre. \n\nsRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit color output.\n\nThe Perceptual Quantizer (PQ) curve from the ST2084 HDR standard is a more complex and steeper curve; it more accurately models the full range of a human eye when you only have 10 bits of precision.";
+		> = 0;	
+		#define GLAMAYRE_COLOR_SPACE (select_color_space*2+1)	
+	#endif
+#else 
+	#if BUFFER_COLOR_BIT_DEPTH == 10 &&  __RENDERER__ >= 0xb000 && __RESHADE__ == 50100
+		//Reshade 5.1 introduced BUFFER_COLOR_SPACE but had a bug that meant you needed to specify manually if it changed during the game.
+		//Set a sensible default if we can
+		uniform int select_color_space 
+		<
+			ui_category = "Color Space";
+			ui_type = "combo";
+			ui_label = "Color Space curve (HDR or SDR?)";
+			ui_items = "sRGB (PC standard for non-HDR screens)\0"
+					   "HDR10 ST2084 (PQ curve)\0"
+					   "HDR10 (HLG curve)\0";
+			ui_tooltip = "High dynamic range (HDR) and standard dynamic range (SDR) use different non-linear curves to represent color values. \n\nReShade 5.1 detects colour space, but doesn't detect if it changes mid-game. Is the game running with HDR10? \n\nIf set incorrectly some effects will look bad (e.g. strong brightness/color changes in effects that should be more subtle.)\n\nRecommendation: If your game and screen are in HDR mode then select HDR10 ST2084. If in doubt, pick the option that where the images changes the least when you enable glamayre. \n\nsRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit color output.\n\nThe Perceptual Quantizer (PQ) curve from the ST2084 HDR standard is a more complex and steeper curve; it more accurately models the full range of a human eye when you only have 10 bits of precision.";
+		> = 
+		#if BUFFER_COLOR_SPACE == 3 
+			1;		
+		#else
+			0;
+		#endif
+		#define GLAMAYRE_COLOR_SPACE (select_color_space*2+1)	
+	#else
+		#define GLAMAYRE_COLOR_SPACE BUFFER_COLOR_SPACE	
+	#endif
+#endif
+
+
+//If output is 8 bit then we don't add these options, we just use ReShade's built-in sRGB conversion later in the sampler and pass.
+
+#if BUFFER_COLOR_BIT_DEPTH > 8 || BUFFER_COLOR_SPACE > 1
+uniform int fast_color_space_conversion <
+			ui_category = "Color Space";
+			ui_type = "combo";
+			ui_label = "Transfer Function precision";
+			ui_items = "Accurate\0"
+					   "Fast Approximation\0";					   
+			ui_tooltip = "Correct color space conversions (especially PQ) can be slow. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out.\n\nMost effects don't need perfect linear color, just something pretty close.";
+		> = 1;
+#else
+	// lets use 2 to mean we can use hardware sRGB conversion
+	#define fast_color_space_conversion 2
+#endif
+
+//You may also choose fast or accurate mode. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear color, just something pretty close. 
 
 uniform bool fxaa_enabled <
     ui_category = "Enabled Effects";
@@ -456,7 +534,7 @@ uniform bool sharp_enabled <
 uniform bool ao_enabled <
     ui_category = "Enabled Effects";
     ui_label = "Fast Ambient Occlusion (AO) (requires depth buffer)";
-    ui_tooltip = "Ambient occlusion shades places that are surrounded by points closer to the camera. It's an approximation of the reduced ambient light reaching occluded areas and concave shapes (e.g. under grass and in corners.)\n\nFor quality adjustment, set preprocessor definition FAST_AO_POINTS. Higher is better quality but slower. Minimum is 2; don't go above 12 - algorithm isn't designed to take advantage of more points.";
+    ui_tooltip = "Ambient occlusion shades places that are surrounded by points closer to the camera. It's an approximation of the reduced ambient light reaching occluded areas and concave shapes (e.g. under grass and in corners.)\n\nFor quality adjustment, set preprocessor definition FAST_AO_POINTS. Higher is better quality but slower. Valid range: 2-16. Recommended: 4, 6 or 8 as these have optimized fast code paths.";
     ui_type = "radio";
 > = true;
 
@@ -482,59 +560,6 @@ uniform bool sky_detect <
     ui_type = "radio";
 > = false;
 
-#if BUFFER_COLOR_BIT_DEPTH == 10
-	#if __RENDERER__ >= 0xb000
-		//Probably but not always HDR10 with PQ mode.
-		uniform int ten_bit_mode <
-			ui_category = "Output mode";
-			ui_type = "combo";
-			ui_label = "Colour Space curve (HDR or SDR?)";
-			ui_items = "SDR sRGB (fast)\0"
-					   "SDR sRGB (accurate)\0"
-					   "HDR10 PQ (fast)\0"
-					   "HDR10 PQ (accurate)\0"			   
-					   ;
-			ui_tooltip = "10 bit colour detected. \n\nReShade cannot yet detect if the game is using HDR10 (high-dynamic-range), or just more precise SDR (standard-dynamic-range) maths. HDR and SDR use different non-linear curves to represent colour values. \n\nYou must select manually if game is running in HDR or SDR (or some effects will look bad.) \n\nYou may also choose fast or accurate mode. A fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear colour, just something pretty close. \n\nThe PQ perceptual quantizer curve is also referred to by the names of the standards it appears in: SMPTE ST 2084, and Rec 2020/BT.2100. \n\nsRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2 and was designed for 8 bit colour output. PQ is a more complex and steeper curve; PQ more accurately models the full range of a human eye.";
-		> = 2;
-	#else
-		//DirectX 9 and 10 can't support HDR so just give fast/accurate SDR option
-		uniform int ten_bit_mode <
-			ui_category = "Output mode";
-			ui_type = "combo";
-			ui_label = "Colour Space curve (SDR)";
-			ui_items = "sRGB (fast)\0"
-					   "sRGB (accurate)\0"
-					   ;
-			ui_tooltip = "10 bit colour detected, but with DirectX 9 or 10 (so it's SDR, not HDR10/BT.2100). \n\nReShade cannot use hardware sRGB transform in 10 bit mode. You may choose fast or accurate conversion. \n\nA fast approximation is okay because we apply the conversion one way, apply our effects, then apply the opposite conversion - so inaccuracies in fast mode mostly cancel out. Glamayre doesn't need perfect linear colour, just something pretty close. \n\nsRGB is the standard for non-HDR computer output - it's a curve similar to gamma 2.2.";
-		> = 0;
-	#endif
-#endif
-
-uniform int debug_mode <
-    ui_category = "Output mode";
-	ui_type = "combo";
-    ui_label = "Debug mode";
-    ui_items = "Normal output\0"
-	           "Debug: show FXAA edges\0"
-			   "Debug: show AO shade & bounce\0"
-	           "Debug: show depth buffer\0"
-			   "Debug: show depth and edges\0"
-			   "Debug: show Fake GI area light\0"
-			   ;
-	ui_tooltip = "Handy when tuning ambient occlusion settings.";
-> = 0;
-
-/*
-Removed debug modes. Were used in development but aren't really useful to users.
-				"Debug: show GI bounce colour\0"	
-			   "Debug: show GI contrast background colour\0"	
-			   "Debug: show GI contrast diff\0"	
-			   "Debug: show GI big AO\0"	
-			   "Debug: show GI area depth\0"	
-			   "Debug: Apply only to right half of screen\0"										
-			   
-*/
-
 
 //////////////////////////////////////
 
@@ -543,7 +568,7 @@ uniform float sharp_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 2; ui_step = .05;
 	ui_tooltip = "For high values I suggest depth of field too. Values > 1 only recommended if you can't see individual pixels (i.e. high resolutions on small or far away screens.)";
 	ui_label = "Sharpen strength";
-> = 0.5;
+> = 0.75;
 
 uniform float ao_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
@@ -563,7 +588,7 @@ uniform float ao_shine_strength < __UNIFORM_SLIDER_FLOAT1
 uniform float dof_strength < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Effects Intensity";
 	ui_min = 0; ui_max = 1; ui_step = .05;
-	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. If zero it just cancels out sharpening on far objects. It's a small effect (1 pixel radius).";
+	ui_tooltip = "Depth of field. Applies subtle smoothing to distant objects. It's a small effect (1 pixel radius).\n\nAt the default it more-or-less cancels out sharpenning, no more.";
 	ui_label = "DOF blur";
 > = 0.3;
 
@@ -573,14 +598,14 @@ uniform float gi_strength < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "Fake GI lighting strength";
-    ui_tooltip = "Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image.";
+    ui_tooltip = "Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image.\n\nUsually safe to increase, except in games with unusually vibrant colors.";
 > = 0.6;
 
 uniform float gi_saturation < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 1.0; ui_step = .05;
     ui_label = "Fake GI saturation";
-    ui_tooltip = "Fake Global Illumination can exaggerate colours in the image too much. Decrease this to reduce the colour saturation of the added light. Increase for more vibrant colours. ";
+    ui_tooltip = "Fake Global Illumination can exaggerate colors in the image too much. Decrease this to reduce the color saturation of the added light. Increase for more vibrant colors. ";
 > = 0.6;
 
 uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
@@ -588,7 +613,7 @@ uniform float gi_contrast < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 1; ui_step = 0.01;
 	ui_tooltip = "Increases contrast relative to average light in surrounding area. \n\nFake Global Illumination can reduce overall contrast; this setting compensates for that and actually improves contrast and clarity compared to the original. \n\nRecommendation: set to roughly half of GI lighting strength.";
 	ui_label = "Adaptive contrast enhancement";
-> = 0.3;
+> = 0.2;
 
 uniform bool gi_use_depth <
 	ui_category = "Fake Global Illumination (with_Fake_GI version only)";	
@@ -614,23 +639,53 @@ uniform float bounce_multiplier < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0.0; ui_max = 2.0; ui_step = .05;
     ui_label = "Fake GI local bounce strength (requires depth)";
-    ui_tooltip = "It uses local depth and colour information to approximate short-range bounced light. \n\nIt only affects areas made darker by ambient occlusion. A bright red pillar next to a white wall will make the wall a bit red, but how red?";
+    ui_tooltip = "It uses local depth and color information to approximate short-range bounced light. \n\nIt only affects areas made darker by ambient occlusion. A bright red pillar next to a white wall will make the wall a bit red, but how red?";
 > = 1;
 
 
 uniform float gi_shape < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Fake Global Illumination (with_Fake_GI version only)";
 	ui_min = 0; ui_max = .2; ui_step = .01;
-	ui_tooltip = "Fake global illumination uses a very blurred version of the image to collect approximate light from a wide area around each pixel. \n\nIf depth is available, it adjusts the offset based on the angle of the local surface. This makes it better pick up colour from facing surfaces, but if set too big it may miss nearby surfaces in favour of further ones. \n\nThe value is the maximum offset, as a fraction of screen size.";
+	ui_tooltip = "Fake global illumination uses a very blurred version of the image to collect approximate light from a wide area around each pixel. \n\nIf depth is available, it adjusts the offset based on the angle of the local surface. This makes it better pick up color from facing surfaces, but if set too big it may miss nearby surfaces in favour of further ones. \n\nThe value is the maximum offset, as a fraction of screen size.";
 	ui_label = "Fake GI offset";
 > = .1;
 
+uniform bool gi_dof_safe_mode <
+	ui_category = "Fake Global Illumination (with_Fake_GI version only)";	
+    ui_label = "Cinematic DOF safe mode";    
+	ui_tooltip = "The depth of field effect (out of focus background) is now common in games and sometimes cannot be disabled. It interacts badly with AO and GI effects using depth. Enabling this tweaks effects to use a blurred area depth instead of the depth at every pixel, which makes Fake GI depth effects usable in such games.";
+> = false;
+
 ////////////////////////////////////////////////////////
+
+
+uniform int debug_mode <
+    ui_category = "Advanced Tuning and Configuration";
+	ui_type = "combo";
+    ui_label = "Debug mode";
+    ui_items = "Normal output\0"
+	           "Debug: show FXAA edges\0"
+			   "Debug: show AO shade & bounce\0"
+	           "Debug: show depth buffer\0"
+			   "Debug: show depth and edges\0"
+			   "Debug: show Fake GI area light\0"
+			   ;
+	ui_tooltip = "Handy when tuning ambient occlusion settings.";
+> = 0;
+
+
+
+uniform bool ao_big_dither < 
+	ui_category = "Advanced Tuning and Configuration";	
+	ui_tooltip = "Ambient occlusion dither.\n\nDithering means adjacent pixels shade is calculated using different nearby depth samples. If you look closely you may see patterns of alternating light/dark pixels.\n\nIf checked, AO uses an 8 pixel dither pattern; otherwise it uses a 2 pixel pattern.\n\nFrom a distance, bigger dither gives better shadow shapes overall; However, you will see annoying repeating patterns up close.\n\nRecommendation: turn on if you have a high enough screen resolution and far enough distance from your screen that you cannot make out individual pixels by eye.\n\nThe performance is about the same either way.";
+	ui_label = "AO bigger dither";
+> = false;
+
 
 uniform float reduce_ao_in_light_areas < __UNIFORM_SLIDER_FLOAT1
     ui_category = "Advanced Tuning and Configuration";
     ui_label = "Reduce AO in bright areas";
-	ui_min = 0.0; ui_max = 8; ui_step = 0.1;
+	ui_min = 0.0; ui_max = 4; ui_step = 0.1;
     ui_tooltip = "Do not shade very light areas. Helps prevent unwanted shadows in bright transparent effects like smoke and fire, but also reduces them in solid white objects. Increase if you see shadows in white smoke, decrease for more shade on light objects. Doesn't help with dark smoke.";    
 > = 1;
 
@@ -669,26 +724,15 @@ uniform float fxaa_bias < __UNIFORM_SLIDER_FLOAT1
 	ui_min = 0; ui_max = 0.1; ui_step = 0.001;
 	ui_tooltip = "Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. ";
 	ui_label = "FXAA bias";
-> = 0.025;
+> = 0.020;
 
-#if BUFFER_COLOR_BIT_DEPTH == 8
+
 uniform float tone_map < __UNIFORM_SLIDER_FLOAT1
 	ui_category = "Advanced Tuning and Configuration";
 	ui_min = 1; ui_max = 9; ui_step = .1;
-	ui_tooltip = "In the real world we can see a much wider range of brightness than a standard screen can produce. \n\nGames use tone mapping to reduce the dynamic range, especially in bright areas, to fit into display limits. \n\nTo calculate lighting effects like Fake GI accurately on SDR images, we want to undo tone mapping first, then reapply it afterwards. \n\nOptimal value depends on tone mapping method the game uses. You won't find that info published anywhere for most games. \n\nOur compensation is based on Reinhard tonemapping, but hopefully will be close enough if the game uses another curve like ACES. At 5 it's pretty close to ACES in bright areas but never steeper. \n\nApplies for Fake GI in SDR mode only.";
+	ui_tooltip = "Note: this is ignored in HDR modes.\n\nIn the real world we can see a much wider range of brightness than a standard screen can produce. \n\nGames use tone mapping to reduce the dynamic range, especially in bright areas, to fit into display limits. \n\nTo calculate lighting effects like Fake GI accurately on SDR images, we want to undo tone mapping first, then reapply it afterwards. \n\nOptimal value depends on tone mapping method the game uses. You won't find that info published anywhere for most games. \n\nOur compensation is based on Reinhard tonemapping, but hopefully will be close enough if the game uses another curve like ACES. At 5 it's pretty close to ACES in bright areas but never steeper. \n\nApplies for Fake GI in SDR mode only.";
 	ui_label = "Tone mapping compensation";
 > = 3;
-#endif
-
-
-
-#if BUFFER_COLOR_BIT_DEPTH == 16
-uniform bool hdr_nits < 
-	ui_category = "Advanced Tuning and Configuration";	
-	ui_tooltip = "Set to true if game's HDR output is in nits (100 is SDR white); I hear Epic games may use this. False if it's in scRGB (1 is SDR white). \n\n If you have depth but get no visible AO maybe try turning this on. If it's on and you get too strong AO in bright areas then turn it off.";
-	ui_label = "Game's output is in nits";
-> = false;
-#endif
 
 uniform bool abtest <
     ui_category = "Advanced Tuning and Configuration";
@@ -701,27 +745,63 @@ uniform bool abtest <
 
 //Tone map compensation to make top end closer to linear.
 float3 undoTonemap(float3 c) {
-#if BUFFER_COLOR_BIT_DEPTH > 8
+	if(GLAMAYRE_COLOR_SPACE < 2)
+	{
+		c=saturate(c);
+		c = c/(1.0-(1.0-rcp(tone_map))*c);	
+	}
+
 	return c;
-#else
-	return c/(1.0-(1.0-rcp(tone_map))*c);
-#endif
 }
 
 float3 reapplyTonemap(float3 c) {
-#if BUFFER_COLOR_BIT_DEPTH > 8
+
+	if(GLAMAYRE_COLOR_SPACE < 2)
+	{
+		c = c/((1-rcp(tone_map))*c+1.0);
+	}
+
 	return c;
-#else
-	return c/((1-rcp(tone_map))*c+1.0);
-#endif
 }
 
-//Colour space conversion. We scale HDR options so SDR range is about 0-1.
-float3 toLinear(float3 c) {
-	float3 r = c; 
-	
-#if BUFFER_COLOR_BIT_DEPTH == 10
-	if(__RENDERER__ >= 0xb000 && ten_bit_mode==3  ) {
+///////////////////////////////////////////////////////////////
+// Color space conversions
+//////////////////////////////////////////////////////////////
+
+float3 sRGBtoLinearAccurate(float3 r) {
+	return (r<=.04045) ? (r/12.92) : pow(abs(r+.055)/1.055, 2.4);	
+}
+
+float3 sRGBtoLinearFastApproximation(float3 r) {
+	//pow is slow, use square (gamma 2.0)
+	return max(r/12.92, r*r);
+}
+
+float3 sRGBtoLinear(float3 r) {
+	if(fast_color_space_conversion==1) r = sRGBtoLinearFastApproximation(r);
+	else if(fast_color_space_conversion==0) r = sRGBtoLinearAccurate(r);
+	return r;
+}
+
+float3 linearToSRGBAccurate(float3 r) {
+	return (r<=.0031308) ? (r*12.92) : (1.055*pow(abs(r), 1.0/2.4) - .055);	
+}
+
+float3 linearToSRGBFastApproximation(float3 r) {
+	//pow is slow, use square (gamma 2.0)
+	return min(r*12.92, sqrt(r));
+}
+
+
+float3 linearToSRGB(float3 r) {
+	if(fast_color_space_conversion==1) r = linearToSRGBFastApproximation(r);
+	else if(fast_color_space_conversion==0) r = linearToSRGBAccurate(r);
+	//if fast_color_space_conversion==2 then do nothing - we've already done it.
+	return r;
+}
+
+
+float3 PQtoLinearAccurate(float3 r) {
 		//HDR10 we need to convert between PQ and linear. https://en.wikipedia.org/wiki/Perceptual_quantizer
 		const float m1 = 1305.0/8192.0;
 		const float m2 = 2523.0/32.0;
@@ -729,12 +809,13 @@ float3 toLinear(float3 c) {
 		const float c2 = 2413.0/128.0;
 		const float c3 = 2392.0/128.0;
 		//Unneccessary max commands are to prevent compiler warnings, which might scare users.
-		float3 powc = pow(max(c,0),1.0/m2);
-		r = pow(max( max(powc-c1, 0) / ( c2 - c3*powc ), 0) , 1.0/m1);		
-		
-		//We scale by 20 instead of 10,000 - this is to keep approx brightness similar to SDR (affects debug modes and smoke_fix)
-		r*=20;
-	} else if(__RENDERER__ >= 0xb000 && ten_bit_mode==2) {
+		float3 powr = pow(max(r,0),1.0/m2);
+		r = pow(max( max(powr-c1, 0) / ( c2 - c3*powr ), 0) , 1.0/m1);		
+				
+		return r * 10000.0/HDR_WHITELEVEL;	//PQ output is 0-10,000 nits, but we want to rescale to 80 nits = 1 to match sRGB and scRGB range.
+}
+
+float3 PQtoLinearFastApproximation(float3 r) {
 		//Approx PQ. pow is slow, Use square near zero, then x^4 for mid, x^8 for high
 		//I invented this - constants chosen by eye by comparing graphs of the curves. might be possible to optimise further to minimize % error.
 		float3 square = r*r;
@@ -742,64 +823,103 @@ float3 toLinear(float3 c) {
 		float3 oct = quad*quad;
 		r= max(max(square/340.0, quad/6.0), oct);
 		
-		r*=20;	
-	} else if(ten_bit_mode==1) {
-		r= (r<=.04045) ? (r/12.92) : pow(abs(r+.055)/1.055, 2.4);		
-	} else {
-		//pow is slow, use square (gamma 2.0)
-		r=max(r/12.92, r*r);
-	}
-#endif
-#if BUFFER_COLOR_BIT_DEPTH == 16
-	if(hdr_nits) r *= 0.01;	
-#endif
+		return r * 10000.0/HDR_WHITELEVEL;	//PQ output is 0-10,000 nits, but we want to rescale to 80 nits = 1 to match sRGB and scRGB range.
+}
 
+float3 PQtoLinear(float3 r) {
+	if(fast_color_space_conversion) r = PQtoLinearFastApproximation(r);
+	else r = PQtoLinearAccurate(r);
 	return r;
 }
 
-float3 toOutputFormat(float3 c) {
-	float3 r = c; 
-	
-#if BUFFER_COLOR_BIT_DEPTH == 10
-	if(__RENDERER__ >= 0xb000 && ten_bit_mode==3 ) {
+float3 linearToPQAccurate(float3 r) {
 		//HDR10 we need to convert between PQ and linear. https://en.wikipedia.org/wiki/Perceptual_quantizer
 		const float m1 = 1305.0/8192.0;
 		const float m2 = 2523.0/32.0;
 		const float c1 = 107.0/128.0;
 		const float c2 = 2413.0/128.0;
 		const float c3 = 2392.0/128.0;	
-		c = c*0.05; //We scaled by 20 instead of 10,000, so here divide by 20. - this is to keep approx brightness similar to SDR (affects debug modes and smoke_fix)
+		
+		//PQ output is 0-10,000 nits, but we want to rescale to 80 nits = 1 to match sRGB and scRGB range.
+		r = r*(HDR_WHITELEVEL/10000.0); 
 		
 		//Unneccessary max commands are to prevent compiler warnings, which might scare users.		
-		float3 powc = pow(max(c,0),m1);
-		r = pow(max( ( c1 + c2*powc ) / ( 1 + c3*powc ), 0 ), m2);	
-	} else if(__RENDERER__ >= 0xb000 && ten_bit_mode==2) {
+		float3 powr = pow(max(r,0),m1);
+		r = pow(max( ( c1 + c2*powr ) / ( 1 + c3*powr ), 0 ), m2);	
+		return r;	
+}
+
+float3 linearToPQFastApproximation(float3 r) {
 		//Approx PQ. pow is slow, sqrt faster, Use square near zero, then x^4 for mid, x^8 for high 
 		//I invented this - constants chosen by eye by comparing graphs of the curves. might be possible to optimise further to minimize % error.
-		r = r*0.05;
+		
+		//PQ output is 0-10,000 nits, but we want to rescale to 80 nits = 1 to match sRGB and scRGB range.
+		r = r*(HDR_WHITELEVEL/10000.0); 
+		
 		float3 squareroot = sqrt(r);
 		float3 quadroot = sqrt(squareroot);
 		float3 octroot = sqrt(quadroot);
 		r = min(octroot, min(sqrt(sqrt(6.0))*quadroot, sqrt(340.0)*squareroot ) );
-	} else if(ten_bit_mode==1) {
-		r= (r<=.0031308) ? (r*12.92) : (1.055*pow(abs(r), 1.0/2.4) - .055);	
-	} else {
-		//pow is slow, , sqrt faster (gamma 2.0)
-		r=min(r*12.92, sqrt(r));
-	}
-#endif
-	
-#if BUFFER_COLOR_BIT_DEPTH == 16
-	if(hdr_nits) r *= 100;	//Max SDR Nits equivelent should be 80, but it seems a thing for games to multiply by 1.5 in HDR mode, which would make it 120. Lets go halves - it doesn't have to be precise just in the ballpark area.
-#endif
+		return r;
+}
+
+float3 linearToPQ(float3 r) {
+	if(fast_color_space_conversion) r = linearToPQFastApproximation(r);
+	else r = linearToPQAccurate(r);
 	return r;
 }
+
+//Hybrid Log Gamma. From ITU REC BT.2100
+// Untested: I think it's just used for video - I don't think any games use it?
+//Simplified - assuming 1000 nit peak display luminance and no black level lift.
+float3 linearToHLG(float3 r) {
+	r = r*HDR_WHITELEVEL/1000;
+	float a = 0.17883277;
+	float b = 0.28466892; // 1-4a
+	float c = 0.55991073; // .5-a*ln(4a)
+	float3 s=sqrt(3*r);
+	return (s<.5) ? s : ( log(12*r - b)*a+c);	
+}
+
+float3 HLGtoLinear(float3 r) {
+	float a = 0.17883277;
+	float b = 0.28466892; // 1-4a
+	float c = 0.55991073; // .5-a*ln(4a)
+	r = (r<.5) ? r*r/3.0 : ( ( exp( (r - c)/a) + b) /12.0);
+	return r * 1000/HDR_WHITELEVEL;
+	
+}
+
+//Color space conversion. 
+float3 toLinearColorspace(float3 r) {
+	if(GLAMAYRE_COLOR_SPACE == 2) r = r*(80.0/HDR_WHITELEVEL);		
+	else if(GLAMAYRE_COLOR_SPACE == 3) r = PQtoLinear(r);
+	else if(GLAMAYRE_COLOR_SPACE == 4) r = HLGtoLinear(r);
+	else r= sRGBtoLinear(r);
+	// Bug: HLG not implemented... but I think it's just a video standard - I don't think any games use it?
+	return r;
+}
+
+float3 toOutputColorspace(float3 r) {
+	if(GLAMAYRE_COLOR_SPACE == 2) r=r*(HDR_WHITELEVEL/80.0); //scRGB is already linear
+	else if(GLAMAYRE_COLOR_SPACE == 3) r = linearToPQ(r);
+	else if(GLAMAYRE_COLOR_SPACE == 4) r = linearToHLG(r);
+	else r= linearToSRGB(r);
+	
+	return r;
+}
+
+
+///////////////////////////////////////////////////////////////
+// END OF Color space conversions
+///////////////////////////////////////////////////////////////
+
 
 sampler2D samplerColor
 {
 	// The texture to be used for sampling.
 	Texture = ReShade::BackBufferTex;
-#if BUFFER_COLOR_BIT_DEPTH > 8
+#if BUFFER_COLOR_BIT_DEPTH > 8 || BUFFER_COLOR_SPACE > 1
 	SRGBTexture = false;
 #else
 	SRGBTexture = true;
@@ -810,7 +930,7 @@ sampler2D samplerColor
 float4 getBackBufferLinear(float2 texcoord) {	 	
 
 	float4 c = tex2D( samplerColor, texcoord);	
-	c.rgb = toLinear(c.rgb);
+	c.rgb = toLinearColorspace(c.rgb);
 	return c;
 }
 
@@ -872,6 +992,23 @@ float4 fixDepth4(float4 depth) {
 }
 
 
+float3 fixDepth3(float3 depth) {		
+		depth *= RESHADE_DEPTH_MULTIPLIER;
+
+#if RESHADE_DEPTH_INPUT_IS_LOGARITHMIC
+		const float C = 0.01;
+		depth = (exp(depth * log(C + 1.0)) - 1.0) / C;
+#endif
+#if RESHADE_DEPTH_INPUT_IS_REVERSED
+		depth = 1 - depth;
+#endif
+		const float N = 1.0;
+		depth /= RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - depth * (RESHADE_DEPTH_LINEARIZATION_FAR_PLANE - N);
+
+		return depth;
+}
+
+
 #ifndef FAKE_GI_WIDTH
 	#define FAKE_GI_WIDTH 192
 #endif
@@ -917,24 +1054,29 @@ sampler VBlurSampler {
 
 float4 startGI_PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : COLOR
 {
-	float4 c=0;
+	float4 c=.5;
 	
-	c = getBackBufferLinear(texcoord);
+	c.rgb = getBackBufferLinear(texcoord).rgb;
+	
+	if( GLAMAYRE_COLOR_SPACE == 2) {
+		//This fixes overly saturated colors in F1 2021 - I believe in linear color some lights are just really bright relative to everything and have too big an effect.
+		//this is a reinhard tonemapper limiting brightness to 20. 
+		c=c/(1+0.05*c);	
+	}
 
 	c.rgb=undoTonemap(c.rgb);
-
 	
 	//If sky detect is on... we don't want to make tops of buildings blue (or red in sunset) - make sky greyscale
 	if(gi_use_depth) {
 		float depth = ReShade::GetLinearizedDepth(texcoord);					
 		if(depth>=1) c.rgb=length(c.rgb); //This is actually a little brighter than the sky - but that works well.
-		c.w=depth;
+		c.w=depth;		
 	}
 	return c;
 }
 
 
-float4 bigBlur2(sampler s, in float4 pos, in float2 texcoord, in float4 steps  ) {
+float4 bigBlur(sampler s, in float4 pos, in float2 texcoord, in float4 steps  ) {
 	
 	float2 pixelsize = 1/float2(FAKE_GI_WIDTH,FAKE_GI_HEIGHT);
 	float4 color = tex2D(s, texcoord - pixelsize*steps.xy) + tex2D(s, texcoord - pixelsize*steps.zw);
@@ -947,25 +1089,27 @@ float4 bigBlur2(sampler s, in float4 pos, in float2 texcoord, in float4 steps  )
 
 float4 bigBlur1_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
 {
-	float4 result = bigBlur2(GITextureSampler, pos, texcoord, float4(10.5,1.5,3.5,0.5) );
+	float4 result = bigBlur(GITextureSampler, pos, texcoord, float4(10.5,1.5,3.5,0.5) );
+	
 	return result;
 }
 
 float4 bigBlur2_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
 {
-	float4 result = bigBlur2(HBlurSampler, pos, texcoord, float4(-1.5,10.5, -0.5,3.5) );
+	float4 result = bigBlur(HBlurSampler, pos, texcoord, float4(-1.5,10.5, -0.5,3.5) );	
+	
 	return result;
 }
 
 float4 bigBlur3_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
 {
-	float4 result = bigBlur2(VBlurSampler, pos, texcoord, float4(7.5,7.5,2.5,2.5) );
+	float4 result = bigBlur(VBlurSampler, pos, texcoord, float4(7.5,7.5,2.5,2.5) );	
 	return result;
 }
 
 float4 bigBlur4_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) : COLOR
 {
-	float4 result = bigBlur2(HBlurSampler, pos, texcoord, float4(-7.5,7.5,-2.5,2.5) );
+	float4 result = bigBlur(HBlurSampler, pos, texcoord, float4(-7.5,7.5,-2.5,2.5) );
 	return result;
 }
 
@@ -973,16 +1117,15 @@ float4 bigBlur4_PS(in float4 pos : SV_Position, in float2 texcoord : TEXCOORD) :
 //This macro allows us to use a float4x4 like an array of up to 16 floats. Saves registers and enables some efficienies compared to array of floats.
 #define AO_MATRIX(a) (ao_point[(a)/4][(a)%4])
 
-	
 float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool gi_path) 
 {	
 	//centre (original pixel)
 	float3 c = getBackBufferLinear(texcoord).rgb;	
 		
 	//centre pixel depth
-	float depth=0;
+	float depth=0 ;
 	
-	if(ao_enabled || dof_enabled || debug_mode || depth_detect || sky_detect || gi_use_depth) {
+	if( (!gi_dof_safe_mode && (ao_enabled || gi_use_depth )) || dof_enabled || debug_mode || depth_detect || sky_detect) {
 		//We don't use our special sampler here... 
 		depth = ReShade::GetLinearizedDepth(texcoord);
 	}
@@ -1058,28 +1201,29 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			ratio = max( 2*score-1, 0);				
 		}
 		
-		if(sharp_enabled) {
+		if(sharp_enabled && sharp_strength) {
 			//sharpen... 
-			//float3 sharp_diff = 2*c - n2 - s2;
-			float3 sharp_diff = 2*c - .5*(n2 + s2) - clamp(c, min(n2,s2), max(n2,s2)) ;
+			//This is sharp gives slightly more natural looking shapes - the min+max trick effectively means the final output is weighted a little towards the median of the 4 surrounding values.
+			float3 sharp_diff = 2*(c+ne+nw+se+sw) - 5*(max(max(ne,nw),max(se,sw)) + min(min(ne,nw),min(se,sw)));	
 			
-			sharp_diff = ( abs(c-n2)<0.01*sqrt(c)&&abs(c-s2)<0.01*sqrt(c) ) ? 0 : sharp_diff;			
-							
-			//If pixel will get brighter, reduce strength. Looks better. Don't brighten at all in bright areas, but allow dark areas to get a bit lighter. 			
-			sharp_diff = min(sharp_diff, sharp_diff *.5);
-							
-			// If DOF enabled, we adjust turn down sharpen based on depth.			
-			if(dof_enabled) {
-				sharp_diff *= 1-depth;
-			}
+			//simple sharp
+			//sharp_diff = 2*c-.5*(ne+nw+se+sw);			
+
+			//avoid sharpennng so far the value clips at 0 or 1
+			float3 max_sharp=min(smoothed,c);			
 						
-			// if sharpenning is disabled, apply a little bit where FXAA happens to compensate for the blur it tends to add.
-			// or keep it simple for now...
-			//float sharp_ratio = sharp_strength ;			
-			//if(!sharp_enabled)  sharp_ratio = ratio/2;
+			if(GLAMAYRE_COLOR_SPACE == 1) {
+				//Only if not HDR then also limit sharpness near c==1.
+				max_sharp = min(max_sharp, 1-max(smoothed,c));					
+			} 
+			//finally limit total sharpness to .25 - this helps prevent oversharpening in mid-range and HDR modes
+			max_sharp = min(max_sharp, .25);
 			
-			//apply sharpen, but limit max change. 
-			c = lerp(c,clamp(c+sharp_diff, c*0.75,c*1.25), sharp_strength ) ;			
+			//This is a bit like reinhard tonemapping applied to sharpness - smoother than clamping. steepness of curve chosen via our sharp_strength 
+			sharp_diff = sharp_diff / (rcp(sharp_strength)+abs(sharp_diff)/(max_sharp+0.00001));
+			
+			//apply sharpen
+			c = c+sharp_diff ;			
 			
 		}
 	  		
@@ -1088,109 +1232,122 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		
 		//Now apply DOF blur, based on depth. Limit the change % to minimize artefacts on near/far edges.
 		if(dof_enabled) { 			
-			c=lerp(c, clamp(smoothed,c*.66,c*1.5), dof_strength*depth);			
+			c=lerp(c, clamp(smoothed,c*.5,c*2), dof_strength*depth);			
 		}		  
 	}
 	
 	float ao = 0;
 		
-	//prevent AO affecting areas that are white - saturated light areas. These are probably clouds or explosions and shouldn't be shaded.
-	float smoke_fix=max(0,(1-reduce_ao_in_light_areas*length(c)));
-	
 	const float shape = ao_shape_modifier*1.1920928955078125e-07F; 		
 	
-	//If bounce lighting isn't enabled we actually pretend it is using c*smoothed to get better colour in bright areas (otherwise shade can be too deep or too grey.)
+	//If bounce lighting isn't enabled we actually pretend it is using c*smoothed to get better color in bright areas (otherwise shade can be too deep or too grey.)
 	float3 bounce=smoothed*normalize(c);
 		
 	float4 gi=0;
-	if(gi_path) {
+	if(gi_path) {		
 		//tone map fix helps with brighter areas.
 		c=undoTonemap(c);
-		smoothed=undoTonemap(smoothed);
+		smoothed=undoTonemap(smoothed);		
 		bounce=smoothed*normalize(c);
 		
-		float4 bounce_area = tex2Dlod(GITextureSampler, float4(texcoord.x,texcoord.y, 0, 2.5));		
-		if(gi_use_depth) {
-			//local area enhanced AO
-			float abs_diff = abs(depth-bounce_area.w);
-			if( abs_diff>shape*2) ao += gi_local_ao_strength*.1*sign(depth-bounce_area.w);
-		}
-	
+		float4 bounce_area = tex2Dlod(GITextureSampler, float4(texcoord.x,texcoord.y, 0, 2.5));	
+
 		float2 gi_adjust_vector=0;
 		
 		if(gi_use_depth) {
-			// We want to sample GI colour a little bit in the direction of the normal
-			float4 local_slope = float4(ddx(depth), ddy(depth), 0.1*BUFFER_PIXEL_SIZE);
-			
-			gi_adjust_vector = normalize(local_slope).xy*gi_shape;
-			
+			if(gi_dof_safe_mode) {				
+				depth = tex2Dlod(GITextureSampler, float4(texcoord.x,texcoord.y, 0, 1.5)).w;		
+			} else  {
+				// We want to sample GI color a little bit in the direction of the normal
+				float4 local_slope = float4(ddx(depth), ddy(depth), 0.1*BUFFER_PIXEL_SIZE);
+					
+				gi_adjust_vector = normalize(local_slope).xy*gi_shape;
+			}
+			//local area enhanced AO
+			float abs_diff = abs(depth-bounce_area.w);
+			if( abs_diff>shape*2) ao += gi_local_ao_strength*.1*sign(depth-bounce_area.w);
+			if(gi_dof_safe_mode) depth=bounce_area.w;
 		}
-		gi = tex2D(VBlurSampler, texcoord+gi_adjust_vector);		
+		gi = tex2D(VBlurSampler, texcoord+gi_adjust_vector);	
 		
-		//Area brightness	
-		//why not use dot(luma,gi.rgb) to get luminance? I tried and min+max works better.
-		float gi_bright = max(gi.r,max(gi.g,gi.b)) + min(gi.r,min(gi.g,gi.b));
 				
 		if(gi_use_depth) { // calculate local bounce.
+			//Area brightness	
+			//why not use dot(luma,gi.rgb) to get luminance? I tried and min+max works better.
+			float gi_bright = max(gi.r,max(gi.g,gi.b)) + min(gi.r,min(gi.g,gi.b));
 							
 			//Estimate amount of white light hitting area
 			float light = gi_bright+.005;			
 										
-			// Estimate base unlit colour of c
+			// Estimate base unlit color of c
 			float3 unlit_c2 = c/light;
 										
-			//We take our bounce light and multiply it by base unlit colour of c to get amount reflected from c.			
+			//We take our bounce light and multiply it by base unlit color of c to get amount reflected from c.			
 			bounce=lerp(bounce, unlit_c2*max(0,2*bounce_area.rgb-c), bounce_multiplier);	
 		}
-		
 	
-		// Fake Global Illumination - 2D, no depth. Works better than you might expect!
+		// Fake Global Illumination - even without depth it works better than you might expect!
+		//estimate ambient light hitting pixel as blend between local and area brighness.		
 		
-		//Local brightness
-		float smooth_bright = max(smoothed.r,max(smoothed.g,smoothed.b)) + min(smoothed.r,min(smoothed.g,smoothed.b));
+		float contrast = 2*length(c)/length(bounce_area.rgb+gi.rgb);
+		contrast = max(.6667, ( 3 * sqrt(contrast) / (2+sqrt(contrast))));
+		
+		
+		
+		float gi_len = length(gi.rgb);
+		float c_len = length(c);
+		//float ambient = (max(smoothed.r,max(smoothed.g,smoothed.b))+gi_len);
+		float ambient = (c_len+gi_len);
+		
+		float bounce_len = max(c_len, (ambient-c_len)/(ambient/c_len) + c_len);
+		
+		float3 bounce_color = lerp(normalize(gi.rgb),1, clamp(0,(1.5-gi_saturation)*(c_len*2-gi_len)/(c_len*2),1));
+		
+		//ambient = max(smoothed.r,max(smoothed.g,smoothed.b));
+		
+		float3 gi_bounce = bounce_len*bounce_color*c/c_len;
+		
+		//This adjustment is to avoid neaby objects casting color onto ones much further away.
+		float gi_ratio = min(1, (gi.w+0.00001)/(depth+0.00001));
+		
+		// This adjustment is to fade out as we reach the sky
+		if(gi_use_depth || sky_detect) gi_ratio *= (1-depth*depth);
 				
-		//estimate ambient light hitting pixel as blend between local and area brighness.
-		float ambient=lerp(gi_bright,smooth_bright,.5);
-				
-		//Estimate of actual colour of c, before direct lighting landed on it.
-		float3 unlit_c = c/ambient;		
-		
-		//Reduce saturation of gi - otherwise colours like red can become far to strong.
-		float3 desaturated_gi = lerp((float3)length(gi.rgb)/sqrt(2),gi.rgb, length(gi.rgb*gi_saturation)/length(c*(1-gi_saturation)+gi.rgb*gi_saturation));
-		
-		//Now calcule amount of light bouncing off current pixel. multiplier comes from experimentation to balance overall colour
-		float3 gi_bounce = unlit_c * 2 * desaturated_gi;	
-				
-		float gi_ratio = 1;
-		if(gi_use_depth || sky_detect) gi_ratio -= depth*depth;
-				
-		float contrast = max(sqrt(2*length(c)/length(bounce_area.rgb+gi.rgb)),.75);
-		
-		float gi_length = clamp(length(min((gi.rgb+c+c-smoothed)/2,gi_bounce) ), length(c), 1.5*length(c));
-		
-		c = lerp(c, (normalize(gi_bounce) * gi_length) , gi_strength*gi_ratio);
-		
-		c = c*lerp(1, contrast, gi_contrast);		
+		c = lerp(c, gi_bounce , gi_strength*gi_ratio);		
+		c = c*lerp(1, contrast, gi_contrast);	 
+	  	
 	}
+	
 	
 	//Fast screen-space ambient occlusion. It does a good job of shading concave corners facing the camera, even with few samples.
 	//depth check is to minimize performance impact areas beyond our max distance, or on games that don't give us depth, if AO left on by mistake.	
-	if( ao_enabled && depth>0 && depth<ao_fog_fix ) {
+	if( ao_enabled && !gi_dof_safe_mode && depth>0 && depth<ao_fog_fix ) {
 		
 		// Checkerboard pattern of 1s and 0s ▀▄▀▄▀▄. Single layer of dither works nicely to allow us to use 2 radii without doubling the samples per pixel. More complex dither patterns are noticable and annoying.
 		uint square =  (uint(vpos.x+vpos.y)) % 2;
+		uint circle=0;
+		if(ao_big_dither) { 
+			circle = (uint(vpos.y/2))%2;			
+		}
 		
+		uint points = clamp(FAST_AO_POINTS,2, 16);
+		
+		float2 ao_lengths[2];
+			
+		ao_lengths[0] = float2(.01,.004);
+		if(!ao_big_dither) ao_lengths[0].x = (min(.002*points,.01));
+		ao_lengths[1] = float2(.0055,.0085);
+					
+					
+		// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
+		// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.				
+		float ao_choice = (square ? ao_lengths[circle].x : ao_lengths[circle].y );
+		float the_vector_len= ao_radius * (1-depth*.8) * ao_choice;
+				
 		uint i; //loop counter
 		
 		// Get circle of depth samples.	
 		float2 the_vector;
-	
-		const uint points = clamp(FAST_AO_POINTS,2, 16);
-		float4x4 ao_point ;
-		ao_point[0]=0;
-		ao_point[1]=0;
-		ao_point[2]=0;
-		ao_point[3]=0;
 		
 		//This is the angle between the same point on adjacent pixels, or half the angle between adjacently points on this pixel.		
 		const float angle = radians(180)/points;		
@@ -1200,19 +1357,144 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		//Reason: GPUs process pixels in groups of 4. By making each group share a centre we make some of depth samples the same between opposites. By reading fewer distinct points overall we improve cache performance. 
 		texcoord = (floor((vpos.xy)/2)*2+0.5)*BUFFER_PIXEL_SIZE;
 		
-		
-		float the_vector_len=ao_radius * (1-depth*.8);	
-		
+	
+#if FAST_AO_POINTS == 6
+		float2x3 ao_point ;
+		ao_point[0]=0;
+		ao_point[1]=0;
+			
 		[unroll]		
-		for(i = 0; i< points; i++) {							
+		for(i = 0; i< 2; i++) {							
 			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
 			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
 			// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.	
 			
-			float2 outer_circle = (min(.002*points,.01)) /normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
-			float2 inner_circle =                   .004 /normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
+			float2 outer_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
+			float2 inner_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
 				
 			the_vector = the_vector_len * (!square ? inner_circle : outer_circle);
+			
+			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.			
+			ao_point[i][0] = pointDepth( texcoord+the_vector);				
+		}
+		
+		[unroll]		
+		for(i = 2; i< 4; i++) {							
+			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
+			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
+			// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.	
+			
+			float2 outer_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
+			float2 inner_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
+				
+			the_vector = the_vector_len * (!square ? inner_circle : outer_circle);
+			
+			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.			
+			ao_point[i-2][1] = pointDepth( texcoord+the_vector);			
+		}
+		
+		[unroll]		
+		for(i = 4; i< 6; i++) {							
+			// distance of points is either ao_radius or ao_radius*.4 (distance depending on position in checkerboard.)
+			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
+			// Also, note, for points < 5 we reduce larger radius a bit - with few points we need more precision near centre.	
+			
+			float2 outer_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
+			float2 inner_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
+				
+			the_vector = the_vector_len * (!square ? inner_circle : outer_circle);
+			
+			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.			
+			ao_point[i-4][2] = pointDepth( texcoord+the_vector);			
+		}
+		
+		
+		float max_depth = depth+0.01*ao_max_depth_diff;
+		float min_depth_sq = sqrt(depth)-0.01*ao_max_depth_diff;
+		min_depth_sq *=  min_depth_sq;
+		
+		float2x3 adj_point;
+		adj_point[0]=0;
+		adj_point[1]=0;
+		
+		[unroll]
+		for(i = 0 ; i<2; i++) {
+			ao_point[i] = fixDepth3(ao_point[i]);			
+			ao_point[i] = (ao_point[i] < min_depth_sq) ? -depth : min(ao_point[i], max_depth);
+		}
+					
+		float2x3 opposite;
+		
+		opposite[0] = ao_point[1].yzx;
+		opposite[1] = ao_point[0].zxy;
+	
+		[unroll]
+		for(i = 0 ; i<2; i++) {
+			ao_point[i] = (ao_point[i] >= 0) ? ao_point[i] : depth*2-abs(opposite[i]);			
+		}
+		
+		adj_point[0] = ao_point[1];			
+		adj_point[1] = ao_point[0].yzx;			
+										
+		//Now estimate the local variation - sum of differences between adjacent points.
+			
+		//This uses fewer instruction but causes a compiler warning. I'm going with the clearer loop below.
+		//float variance = dot(mul((ao_point[i]-adj_point[i])*(ao_point[i]-adj_point[i]),float4(1,1,1,1)),float4(1,1,1,1)/(2*points));
+		
+		float3 variance = 0; 
+		
+		for(i = 0 ; i<2; i++) {
+			variance += (ao_point[i]-adj_point[i])*(ao_point[i]-adj_point[i]);						
+		}		
+		
+		variance = sqrt(dot(variance, float3(1,1,1)/(2*points)));
+		
+		// Minimum difference in depth - this is to prevent shading areas that are only slighly concave.		
+		variance += shape;
+		
+		float3 ao3=0;
+		
+		[unroll]
+		for(i = 0 ; i<2; i++) {
+					
+			float3 near=min(ao_point[i],adj_point[i]); 
+			float3 far=max(ao_point[i],adj_point[i]); 
+			
+			//This is the magic that makes shaded areas smoothed instead of band of equal shade. If both points are in front, but one is only slightly in front (relative to variance) then 
+			near -= variance;
+			far  += variance;
+				
+			//Linear interpolation - 
+			float3 crossing = (depth-near)/(far-near);
+				
+			//If depth is between near and far, crossing is between 0 and 1. If not, clamp it. Then adjust it to be between -1 and +1.
+			crossing = 2*clamp(crossing,0,1)-1;
+				
+			ao3 += crossing;
+		}
+		
+		//Because of our checkerboard pattern it can be too dark in the inner_circle and create a noticable step. This softens the inner circle (which will be darker anyway because outer_circle is probably dark too.)
+		//if(!square) ao3 *=(2.0/3.0);
+		ao3 *= (50*abs(ao_choice)+.5);
+		
+		ao += dot(ao3, float3(1,1,1)/points);
+	
+#else
+		float4x4 ao_point ;
+		ao_point[0]=0;
+		ao_point[1]=0;
+		ao_point[2]=0;
+		ao_point[3]=0;
+				
+		[unroll]		
+		for(i = 0; i< points; i++) {							
+			// We want (i*2+square)*angle, but this is a trick to help the optimizer generate constants instead of trig functions.
+						
+			float2 outer_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2+.5)*angle), cos((i*2+.5)*angle) );
+			float2 inner_circle = 1/normalize(BUFFER_SCREEN_SIZE)*float2( sin((i*2-.5)*angle), cos((i*2-.5)*angle) );
+				
+			the_vector = the_vector_len * (square ? inner_circle : outer_circle);
+			
 			
 			//Get the depth at each point - must use POINT sampling, not LINEAR to avoid ghosting artefacts near object edges.			
 			AO_MATRIX(i) = pointDepth( texcoord+the_vector);
@@ -1278,7 +1560,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 			
 		//This uses fewer instruction but causes a compiler warning. I'm going with the clearer loop below.
 		//float variance = dot(mul((ao_point[i]-adj_point[i])*(ao_point[i]-adj_point[i]),float4(1,1,1,1)),float4(1,1,1,1)/(2*points));
-		
+		 
 		float4 variance = 0; 
 		
 		for(i = 0 ; i<(points+3)/4; i++) {
@@ -1333,13 +1615,19 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 		}
 		
 		//Because of our checkerboard pattern it can be too dark in the inner_circle and create a noticable step. This softens the inner circle (which will be darker anyway because outer_circle is probably dark too.)
-		if(!square || points==2) ao4 *=(2.0/3.0);
+		//if(!square || points==2) ao4 *=(2.0/3.0);
+		ao4 *= (50*abs(ao_choice)+.5);
 		
 		ao += dot(ao4, float4(1,1,1,1)/points);	
+#endif	
+		
 	}
 	
+	//prevent AO affecting areas that are white - saturated light areas. These are probably clouds or explosions and shouldn't be shaded.
+	float smoke_fix=max(0,(1-reduce_ao_in_light_areas*length(min(c,smoothed))));
+		
 	//debug Show ambient occlusion mode
-	if(debug_mode==2 ) c=.25;
+	if(debug_mode==2 ) c=.33;
 	
 	//Weaken the AO effect if depth is a long way away. This is to avoid artefacts when there is fog/haze/darkness in the distance.	
 	float fog_fix_multiplier = clamp((1-depth/ao_fog_fix)*2,0,1 );	
@@ -1375,7 +1663,7 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
 	
 	if(gi_path) {
 		c=reapplyTonemap(c);
-		
+				
 		//Show GI light
 		if(debug_mode==5) c=gi.rgb;	
 		
@@ -1398,8 +1686,8 @@ float3 Glamarye_Fast_Effects_PS(float4 vpos , float2 texcoord : TexCoord, bool g
   
   //Show depth buffer mode
   if(debug_mode == 3) c = depth ; 
-    
-  c.rgb = toOutputFormat(c);
+
+  c.rgb = toOutputColorspace(c);
   
   return c;
 }
@@ -1437,10 +1725,10 @@ technique Glamarye_Fast_Effects_with_Fake_GI <
 				 "6. Detect Sky. Disable effects for background images behind the 3D world\n"
 				 "\nFake Global Illumination effects:\n"
 				 " (these attempts to look like fancy GI shaders but using very simple approximations. Not as realistic, but very fast.)\n"
-				 "1. Indirect lighting. Pixels take colour from the surrounding area (depth optional!)\n"
+				 "1. Indirect lighting. Pixels take color from the surrounding area (depth optional!)\n"
 				 "2. Adaptive contrast enhancement. Enhances clarity.\n"
 				 "3. Large scale ambient occlusion. Big area but very soft.\n"
-				 "4. Local bounce light. Enhances ambient occlusion, adding colour to it.\n";
+				 "4. Local bounce light. Enhances ambient occlusion, adding color to it.\n";
 
 	>
 {	
@@ -1480,7 +1768,7 @@ technique Glamarye_Fast_Effects_with_Fake_GI <
 		PixelShader = Glamarye_Fast_Effects_all_PS;
 				
 		// SDR or HDR mode?
-#if BUFFER_COLOR_BIT_DEPTH > 8
+#if BUFFER_COLOR_BIT_DEPTH > 8 || BUFFER_COLOR_SPACE > 1
 			SRGBWriteEnable = false;
 #else
 			SRGBWriteEnable = true;
@@ -1508,7 +1796,7 @@ technique Glamarye_Fast_Effects_without_Fake_GI <
 		PixelShader = Glamarye_Fast_Effects_without_Fake_GI_PS;
 				
 		// SDR or HDR mode?
-#if BUFFER_COLOR_BIT_DEPTH > 8
+#if BUFFER_COLOR_BIT_DEPTH > 8 || BUFFER_COLOR_SPACE > 1
 			SRGBWriteEnable = false;
 #else
 			SRGBWriteEnable = true;
