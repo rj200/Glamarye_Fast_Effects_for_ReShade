@@ -1,6 +1,7 @@
-
-Glamarye Fast Effects for ReShade (version 6.0)
+Glamarye Fast Effects for ReShade (version 6.1)
 ======================================
+
+**New in 6.1:** Tweaked sharpenning to better balance dots & surrounding pixels. Simpler smoother adaptive contrast curve. Fake GI: Reduced light transfer between near/far areas, fixed over saturated colors at image edge.
 
 **New in 6.0:** New sharpening equation that gives cleaner shapes. New and improved Fake GI equations - more realistic colors calculation, and reduce effect of near objects on far ones. Optimized AO implementation for default AO quality level. Added "Cinematic DOF safe mode" option which disables AO and tweaks Fake GI to avoid artefacts in scenes that have a strong depth of field (out of focus background) effect. Allow tonemapping compensation in 10-bit SDR mode. Tweaked adaptive contrast to not overbrighten. 16 bit HDR mode fix for oversaturated GI color. HDR setup now uses ReShade's new BUFFER_COLOR_SPACE definition to help detect right default.
 
@@ -8,8 +9,6 @@ Glamarye Fast Effects for ReShade (version 6.0)
 Author: Robert Jessop 
 
 License: MIT
-	
-Copyright 2022 Robert Jessop 
 
 About
 -----
@@ -349,6 +348,8 @@ History
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+6.1 (+) Tweaked sharpenning to better balance dots & surrounding pixels. (+) Simpler smoother adaptive contrast curve. (+) Fake GI: Reduced light transfer between near/far areas. (x) Fake GI: fixed over saturated colors at image edge. (+) Option to make sharpen and DOF effects bigger. Tweaked defaults.
+
 6.0 (+) Fake GI: new equations for more realistic shading, fixing oversaturation of colors. Fake GI: reduced effect of close objects on distant ones. AO: optimized implementation for FAST_AO_POINTS==6 (the default) saves a few instructions. New sharpening equation that gives cleaner shapes - around points and fine lines it changes the surrounding pixels as much as the detail. Both Fake GI and sharpening now eases off smoothly near min and max instead of just clamping. (*) Added "Cinematic DOF safe mode" option which disables AO and tweaks Fake GI to avoid artefacts in scenes that have a strong depth of field (out of focus background) effect. Allow tonemapping compensation in 10-bit SDR mode. Tweaked adaptive contrast to not overbrighten. 16 bit color mode fix for oversaturated GI color. HDR setup now uses ReShade's new BUFFER_COLOR_SPACE definition to help detect right default. Reworked all HDR code and settings.
 
 5.1.1 (+) Tweaked approximate PQ curve constants. Fixed probably insignificant error in (< vs <=) in sRGB curve.
@@ -405,5 +406,3 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
-
-	
