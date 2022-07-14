@@ -1,9 +1,8 @@
-Glamarye Fast Effects for ReShade (version 6.1)
+Glamarye Fast Effects for ReShade (version 6.2)
 ======================================
 
-**New in 6.1:** Tweaked sharpenning to better balance dots & surrounding pixels. Simpler smoother adaptive contrast curve. Fake GI: Reduced light transfer between near/far areas, fixed over saturated colors at image edge.
+**New in 6.2:** Fixed sharpening bug. Updated HDR detection and configuration for ReShade 5.2. Fake GI: New improved equation that fixes problems with oversaturation in games with strong coloured lighting; the Fake GI sliders work a bit differently now so you might need to tweak any presets. Fix darkening near image edge. Simplified pre-processor definitions.
 
-**New in 6.0:** New sharpening equation that gives cleaner shapes. New and improved Fake GI equations - more realistic colors calculation, and reduce effect of near objects on far ones. Optimized AO implementation for default AO quality level. Added "Cinematic DOF safe mode" option which disables AO and tweaks Fake GI to avoid artefacts in scenes that have a strong depth of field (out of focus background) effect. Allow tonemapping compensation in 10-bit SDR mode. Tweaked adaptive contrast to not overbrighten. 16 bit HDR mode fix for oversaturated GI color. HDR setup now uses ReShade's new BUFFER_COLOR_SPACE definition to help detect right default.
 
 
 Author: Robert Jessop 
@@ -141,11 +140,11 @@ Fake Global Illumination Settings
 
 These only work if you are using the _with Fake GI_ version of the shader. The first three options work even without depth information.
 
-**Fake GI lighting strength** - Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image. Usually safe to increase, except in games with unusually vibrant colors.
+**Fake GI lighting strength** - Fake Global Illumination wide-area effect. Every pixel gets some light added from the surrounding area of the image. Usually safe to increase, except in games with unusually bright colors.
 
-**Fake GI saturation** - Fake Global Illumination can exaggerate colors in the image too much. Decrease this to reduce the color saturation of the added light. Increase for more vibrant colors.
+**Fake GI saturation** - Fake Global Illumination saturation boost. This increases color change, especially in areas of similar brightness. Decrease this if colours are too saturated or all too similar. Increase for more noticable indirect light color bounce. 
 
-**Adaptive contrast enhancement** - Increases contrast relative to average light in surrounding area. Fake Global Illumination can reduce overall contrast; this setting compensates for that. It actually may be useful on it's own with lighting strength zeroed - it can improve contrast and clarity of any image. Recommendation: set to roughly half of GI lighting strength.
+**Adaptive contrast enhancement** - Increases contrast relative to average light in surrounding area. This makes differences between nearby areas clearer. However, too much contrast looks less realistic and may make near black or near white areas less clear.
 
 **Enable Fake GI effects that require depth** - This must be checked for the following sliders to have effect. If you don't have depth buffer data or don't want the AO effects then unchecking this and just using 2D Fake GI will make it slightly faster. 
 
@@ -341,12 +340,15 @@ Ideas for future improvement
 ----------------------------
 
 - Use ReShade 5's new plugin mechanism to allow it to run earlier in the game's swap chain, which will help with fog & smoke issues.
-- Stop improving this a start playing the games again!
+- RFC 9225 part 4 compliance.
+- More complex but realistic but slower GI option?
 
 History
 -------
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+6.2 (x) Fixed sharpening bug. (!) Updated HDR detection and configuration for ReShade 5.2. (+) Fake GI: New improved equation that fixes problems with oversaturation in games with strong coloured lighting; the Fake GI sliders work a bit differently now so you might need to tweak any presets. Fix darkening near image edge. Simplified pre-processor definitions.
 
 6.1 (+) Tweaked sharpenning to better balance dots & surrounding pixels. (+) Simpler smoother adaptive contrast curve. (+) Fake GI: Reduced light transfer between near/far areas. (x) Fake GI: fixed over saturated colors at image edge. (+) Option to make sharpen and DOF effects bigger. Tweaked defaults.
 
