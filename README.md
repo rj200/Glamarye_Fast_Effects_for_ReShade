@@ -1,5 +1,8 @@
-Glamarye Fast Effects for ReShade (version 6.2)
+
+Glamarye Fast Effects for ReShade (version 6.3)
 ======================================
+
+**New in 6.3:** New advanced option to control whether sharpenning is reduced where jagged edges are found. Previously this was done only if Fast FXAA was enabled; now it's configurable independently from FXAA and is on by default. This improves quality when using sharpen with other anti-aliasing solutions (e.g. in game TAA or DLSS). New advanced option to change the distance at which Fake GI effect fades out. (+) Option to tweak max sharpen color change.
 
 **New in 6.2:** Fixed sharpening bug. Updated HDR detection and configuration for ReShade 5.2. Fake GI: New improved equation that fixes problems with oversaturation in games with strong coloured lighting; the Fake GI sliders work a bit differently now so you might need to tweak any presets. Fix darkening near image edge. Simplified pre-processor definitions.
 
@@ -8,6 +11,10 @@ Glamarye Fast Effects for ReShade (version 6.2)
 Author: Robert Jessop 
 
 License: MIT
+	
+Copyright 2022 Robert Jessop 
+
+
 
 About
 -----
@@ -197,6 +204,8 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 
 **AO max distance** - The ambient occlusion effect fades until it is zero at this distance. Helps avoid avoid artefacts if the game uses fog or haze. If you see deep shadows in the clouds then reduce this. If the game has long, clear views then increase it.
 
+**Fake GI max distance** - Fake GI effect will fade out at this distance. The default 1 should be fine for most games.
+
 **AO radius** - Ambient Occlusion area size, as percent of screen. Bigger means larger areas of shade, but too big and you lose detail in the shade around small objects. Bigger can be slower too. 	
 		
 **AO shape modifier** - Ambient occlusion - weight against shading flat areas. Increase if you get deep shade in almost flat areas. Decrease if you get no-shade in concave areas areas that are shallow, but deep enough that they should be occluded. 
@@ -206,6 +215,13 @@ You probably don't want to adjust these, unless your game has visible artefacts 
 **FXAA bias** - Don't anti-alias edges with very small differences than this - this is to make sure subtle details can be sharpened and do not disappear. Decrease for smoother edges but at the cost of detail, increase to only sharpen high-contrast edges. This FXAA algorithm is designed for speed and doesn't look as far along the edges as others - for best quality you might want turn it off and use a different shader, such as SMAA.
 
 **Tone mapping compensation** (available for non-HDR output only) - In the real world we can see a much wider range of brightness than a standard screen can produce. Games use tone mapping to reduce the dynamic range, especially in bright areas, to fit into display limits. To calculate lighting effects like Fake GI accurately on SDR images, we want to undo tone mapping first, then reapply it afterwards. Optimal value depends on tone mapping method the game uses. You won't find that info published anywhere for most games. Our compensation is based on Reinhard tone mapping, but hopefully will be close enough if the game uses another curve like ACES. At 5 it's pretty close to ACES in bright areas but never steeper. In HDR modes this is not required.";
+
+**Sharpen maximum change** - Maximum amount a pixel can be changed by the sharpen effect. Prevents oversharpening already sharp edges. Increase for extra sharp edges at high sharpen values; recommended only if sitting far from a high-res screen.
+
+
+**Sharpen jagged edges less** - If enabled, the sharpen effect is reduced on jagged edges. It uses Fast FXAA's edge detection. If this is disabled the image will be a bit sharper and, if Fast FXAA is also disabled, faster too. However, without this option sharpenning can partially reintroduce jaggies that had been smoothed by Fast FXAA or the game's own anti-aliasing.
+
+**Bigger sharpen & DOF** - Uses a bigger area, making both effects bigger. Affects FXAA too. This is useful for high resolutions, with older games with low resolution textures, or viewing far from the screen. However, very fine details will be less accurate. It increases overall sharpness too. Tip: use about half sharpen strength to get similar overall sharpness but with the bigger area.
 
 **FAST_AO_POINTS** (preprocessor definition - bottom of GUI.) Number of depth sample points in Performance mode. This is your speed vs quality knob; higher is better but slower. Valid range: 2-16. Recommended: 4, 6 or 8 as these have optimized fast code paths. 
 
@@ -304,7 +320,7 @@ Fast Ambient occlusion is pretty simple, but has a couple of tricks that make it
 1. Any sample significantly closer is discarded and replaced with an estimated sample based on the opposite point. This prevents nearby objects casting unrealistic shadows and far away ones. Any sample more than significantly further away is clamped to a maximum. AO is a local effect - we want to measure shade from close objects and surface contours; distant objects should not affect it.
 2. Our 2-10 samples are equally spaced in a circle. We approximate a circle by doing linear interpolation between adjacent points. Textbook algorithms do random sampling; with few sample points that is noisy and requires a lot of blur; also it's less cache efficient.
 3. The average difference between adjacent points is calculated. This variance value is used to add fuzziness to the linear interpolation in step 2 - we assume points on the line randomlyh vary in depth by this amount. This makes shade smoother so you don't get solid bands of equal shade. 
-4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested but don't look good (░░).
+4. Pixels are split into two groups in a checkerboard pattern (▀▄▀▄▀▄). Alternatve pixels use a circle of samples half of the radius. With small pixels, the eye sees a half-shaded checkerboard as grey, so this is almost as good taking twice as many samples per pixel. More complex dithering patterns were tested (░░), and one is available in the advanced tuning, but the pattern will be too visible unless you are viewing from far away.
 
 Amazingly, this gives quite decent results even with very few points in the circle.
 
@@ -319,7 +335,7 @@ For the rest of the effects we actually use two levels of blur - the big one, an
 
 Adaptive Contrast enhancement uses our the average of our two blurred images as a centre value and moves each pixel value away from it. 
 
-If depth is enabled then we also include a depth channel in the blurred images. Also, where depth==1 (sky) we brighten and completely desaturate the color image - this makes sky and rooftops look better. If depth is enabled and Fake GI offset set then we use ddx & ddy to read the local depth buffer surface slope and move the point we sample the big blur in the direction away from the camera.
+If depth is enabled then we also include a depth channel in the blurred images. Also the blur is adjusted based on the depth - at each step of the blur four sample locations are used - if either of the outer two samples is behind the inner ones then it is not used - as the light from it would likely be blocked. Also, near depth==1 (sky) we brighten and completely desaturate the color image - this makes sky and rooftops look better. If depth is enabled and Fake GI offset set then we use ddx & ddy to read the local depth buffer surface slope and move the point we sample the big blur in the direction away from the camera.
 
 Big AO (large scale ambient occlusion) simply uses the ratio between the current pixel's depth and the big blurred depth value. If the local depth is more than twice the distance it actually reduces the amount of AO to avoid overshading distant areas seen through small gaps or windows. We clamp it to only darken - we don't do AO shine at this scale.
 
@@ -347,6 +363,8 @@ History
 -------
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
+
+6.3 (+) New advanced option to control whether sharpenning is reduced where jagged edges are found. Previously this was done only if Fast FXAA was enabled; now it's configurable independently from FXAA and is on by default. This improves quality when using sharpen with other anti-aliasing solutions (e.g. in game TAA or DLSS). (+) New advanced option to change the distance at which Fake GI effect fades out. (+) Option to tweak max sharpen color change.
 
 6.2 (x) Fixed sharpening bug. (!) Updated HDR detection and configuration for ReShade 5.2. (+) Fake GI: New improved equation that fixes problems with oversaturation in games with strong coloured lighting; the Fake GI sliders work a bit differently now so you might need to tweak any presets. Fix darkening near image edge. Simplified pre-processor definitions.
 
