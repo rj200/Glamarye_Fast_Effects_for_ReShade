@@ -1,6 +1,3 @@
-/*------------------.
-| :: Description :: |
-'-------------------/
 
 Glamarye Fast Effects for ReShade (version 6.4)
 ======================================
