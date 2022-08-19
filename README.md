@@ -1,6 +1,11 @@
+/*------------------.
+| :: Description :: |
+'-------------------/
 
-Glamarye Fast Effects for ReShade (version 6.3)
+Glamarye Fast Effects for ReShade (version 6.4)
 ======================================
+
+**New in 6.4:** Fixed unexpected color change for local bounce light, most noticable in without_Fake_GI version. Improved quality of adaptive contrast enhancement and made it interact better with other effects; also increased maximum strength. Increased default and maximum Fake GI saturation, as it was too subtle before.
 
 **New in 6.3:** New advanced option to control whether sharpenning is reduced where jagged edges are found. Previously this was done only if Fast FXAA was enabled; now it's configurable independently from FXAA and is on by default. This improves quality when using sharpen with other anti-aliasing solutions (e.g. in game TAA or DLSS). New advanced option to change the distance at which Fake GI effect fades out. (+) Option to tweak max sharpen color change.
 
@@ -11,10 +16,6 @@ Glamarye Fast Effects for ReShade (version 6.3)
 Author: Robert Jessop 
 
 License: MIT
-	
-Copyright 2022 Robert Jessop 
-
-
 
 About
 -----
@@ -364,6 +365,8 @@ History
 
 (*) Feature (+) Improvement	(x) Bugfix (-) Information (!) Compatibility
 
+**New in 6.4:** (x) Fixed unexpected color change for local bounce light, most noticable in without_Fake_GI version. (+) Improved quality of adaptive contrast enhancement and made it interact better with other effects; also increased maximum strength. (-) Increased default and maximum Fake GI saturation, as it was too subtle before.
+
 6.3 (+) New advanced option to control whether sharpenning is reduced where jagged edges are found. Previously this was done only if Fast FXAA was enabled; now it's configurable independently from FXAA and is on by default. This improves quality when using sharpen with other anti-aliasing solutions (e.g. in game TAA or DLSS). (+) New advanced option to change the distance at which Fake GI effect fades out. (+) Option to tweak max sharpen color change.
 
 6.2 (x) Fixed sharpening bug. (!) Updated HDR detection and configuration for ReShade 5.2. (+) Fake GI: New improved equation that fixes problems with oversaturation in games with strong coloured lighting; the Fake GI sliders work a bit differently now so you might need to tweak any presets. Fix darkening near image edge. Simplified pre-processor definitions.
@@ -418,7 +421,7 @@ Thank you:
 
 Alex Tuduran for the previous blur algorithm, suggestions and inspiration for the brightness part of Fake GI algorithm.
 
-macron, AlucardDH, NikkMann, Mirt81, distino, vetrogor, illuzio, geisalt for feedback and bug reports.
+El Goblino, macron, AlucardDH, NikkMann, Mirt81, distino, vetrogor, illuzio, geisalt for feedback and bug reports.
 
 ReShade devs for ReShade.
 
@@ -426,3 +429,5 @@ Glamarye?
 ----------
 
 In the Andrzej Sapkowski's Witcher novels, [Glamayre](https://witcher.fandom.com/wiki/Glamour) is magical make-up. Like Sapkowski's sourceresses, The Witcher 3 is very beautiful already, but still likes a bit of Glamayre.
+
+	
