@@ -1002,6 +1002,18 @@ sampler2D samplerColor
 #else
 	SRGBTexture = true;
 #endif
+
+	// The method used for resolving texture coordinates which are out of bounds.
+	// Available values: CLAMP, MIRROR, WRAP or REPEAT, BORDER
+	AddressU = CLAMP;
+	AddressV = CLAMP;
+	AddressW = CLAMP;
+
+	// The magnification, minification and mipmap filtering types.
+	// Available values: POINT, LINEAR
+	MagFilter = POINT;
+	MinFilter = POINT;
+	MipFilter = POINT;
 };
 
 
@@ -1017,17 +1029,6 @@ sampler2D samplerDepth
 	// The texture to be used for sampling.
 	Texture = ReShade::DepthBufferTex;
 
-	// The method used for resolving texture coordinates which are out of bounds.
-	// Available values: CLAMP, MIRROR, WRAP or REPEAT, BORDER.
-	AddressU = CLAMP;
-	AddressV = CLAMP;
-	AddressW = CLAMP;
-
-	// The magnification, minification and mipmap filtering types.
-	// Available values: POINT, LINEAR.
-	MagFilter = POINT;
-	MinFilter = POINT;
-	MipFilter = POINT;
 };
 
 
@@ -1112,27 +1113,26 @@ texture HBlurTex {
     Width = FAKE_GI_WIDTH ;
     Height = FAKE_GI_HEIGHT ;
     Format = RGBA16F;
-	AddressU = BORDER;
-	AddressV = BORDER;
-	AddressW = BORDER;
 };
 
 texture VBlurTex {
     Width = FAKE_GI_WIDTH ;
     Height = FAKE_GI_HEIGHT ;
     Format = RGBA16F;
-	AddressU = BORDER;
-	AddressV = BORDER;
-	AddressW = BORDER;
-
 };
 
 sampler HBlurSampler {
     Texture = HBlurTex;
+    AddressU = BORDER;
+    AddressV = BORDER;
+    AddressW = BORDER;
 };
 
 sampler VBlurSampler {
     Texture = VBlurTex;
+    AddressU = BORDER;
+    AddressV = BORDER;
+    AddressW = BORDER;
 };
 
 
