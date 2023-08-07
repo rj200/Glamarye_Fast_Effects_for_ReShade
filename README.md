@@ -1,6 +1,8 @@
 
-Glamarye Fast Effects for ReShade (version 6.4.1)
+Glamarye Fast Effects for ReShade (version 6.4.2)
 ======================================
+
+**New in 6.4.2** bugfix: removed incorrectly placed AddressU that caused compile fail in Reshade 5.9
 
 **New in 6.4.1** bugfix: divide by zero in contrast calculation.
 
